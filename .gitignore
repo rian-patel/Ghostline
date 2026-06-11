@@ -1,0 +1,7 @@
+node_modules/
+dist/
+__pycache__/
+pipeline/cache/
+pipeline/venv/
+.env
+.vercel
