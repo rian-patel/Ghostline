@@ -33,7 +33,31 @@ body {
 .app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 28px 24px 64px;
+  padding: 8px 24px 64px;
+}
+
+/* hero banner behind the masthead */
+.hero {
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(90deg, var(--bg) 4%, rgba(11, 13, 16, 0.86) 46%, rgba(11, 13, 16, 0.38) 100%),
+    var(--bg) url('/brand/hero.jpg') right center / cover no-repeat;
+}
+.hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 52px 24px 40px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(255, 59, 48, 0.35));
 }
 
 /* staggered page-load reveal */
@@ -49,18 +73,16 @@ body {
 .masthead {
   position: relative;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
 }
 .masthead::after {
   content: '';
   position: absolute;
-  left: 0;
-  bottom: -1px;
+  left: 62px;
+  bottom: -14px;
   width: 76px;
   height: 2px;
   background: var(--accent);

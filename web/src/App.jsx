@@ -21,18 +21,26 @@ export default function App() {
   if (!session) return <p className="status-note">Loading session…</p>
 
   return (
-    <div className="app">
-      <header className="masthead rise">
-        <h1 className="wordmark" data-text="GHOSTLINE">
-          GHOST<span className="line">LINE</span>
-        </h1>
-        <div className="session-meta">
-          {session.meta.gp} {session.meta.year} · {session.meta.session} · POLE{' '}
-          <b>{session.meta.pole_driver}</b>{' '}
-          <span className="best">{formatLapTime(session.meta.pole_time)}</span>
+    <>
+      <div className="hero rise">
+        <div className="hero-inner">
+          <header className="masthead">
+            <div className="brand">
+              <img src="/brand/mark.svg" alt="Ghostline" className="brand-mark" />
+              <h1 className="wordmark" data-text="GHOSTLINE">
+                GHOST<span className="line">LINE</span>
+              </h1>
+            </div>
+            <div className="session-meta">
+              {session.meta.gp} {session.meta.year} · {session.meta.session} · POLE{' '}
+              <b>{session.meta.pole_driver}</b>{' '}
+              <span className="best">{formatLapTime(session.meta.pole_time)}</span>
+            </div>
+          </header>
         </div>
-      </header>
-      <nav className="tabs rise rise-1">
+      </div>
+      <div className="app">
+        <nav className="tabs rise rise-1">
         {VIEWS.map((v) => (
           <button
             key={v.id}
@@ -42,10 +50,11 @@ export default function App() {
             {v.label}
           </button>
         ))}
-      </nav>
-      <main className="rise rise-2">
-        {view === 'replay' ? <TrackMap session={session} /> : <Pairwise session={session} />}
-      </main>
-    </div>
+        </nav>
+        <main className="rise rise-2">
+          {view === 'replay' ? <TrackMap session={session} /> : <Pairwise session={session} />}
+        </main>
+      </div>
+    </>
   )
 }
