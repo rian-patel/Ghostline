@@ -26,6 +26,8 @@ const SLOPE_THRESHOLD = 0.0008
 // own final delta — which is exact against official lap times.
 const at = (arr, i) => arr[i < arr.length ? i : arr.length - 1]
 
+const teamSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+
 const axisTick = { fill: '#6b7480', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
 const tooltipStyle = {
   contentStyle: {
@@ -209,13 +211,12 @@ export default function Pairwise({ session }) {
               </select>
               {team?.name && (
                 <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <span
-                    style={{
-                      width: 9,
-                      height: 9,
-                      borderRadius: '50%',
-                      background: team.color || '#555',
-                      flexShrink: 0,
+                  <img
+                    src={`/teams/${teamSlug(team.name)}.svg`}
+                    alt=""
+                    style={{ width: 22, height: 22, flexShrink: 0 }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
                     }}
                   />
                   {team.name}
