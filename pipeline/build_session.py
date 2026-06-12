@@ -7,6 +7,7 @@ import argparse
 from pathlib import Path
 
 from ghostline.delta import cumulative_delta
+from ghostline.dynamics import compute_dynamics
 from ghostline.export import export_session
 from ghostline.load import get_fastest_laps, load_quali_session
 from ghostline.resample import resample_lap
@@ -45,6 +46,7 @@ def main():
         channels = dict(grid)
         channels["delta"] = cumulative_delta(grid, pole_grid,
                                              lap_time, pole_time)
+        channels.update(compute_dynamics(laps[code], grid))
         drivers[code] = {
             "lap_time": round(lap_time, 3),
             "team": teams[code],
@@ -69,6 +71,11 @@ def main():
         "pole_driver": pole_code,
         "pole_time": drivers[pole_code]["lap_time"],
         "corners": corners,
+        "caveats": [
+            "Longitudinal g is approximate: derived by differentiating speed.",
+            "Position data is ~4-5 Hz interpolated; curvature and lateral g "
+            "are computed from smoothed position data.",
+        ],
     }
 
     slug = args.gp.lower().replace(" ", "_")

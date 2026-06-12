@@ -15,6 +15,9 @@ def _round_channels(channels):
         "gear": [int(round(float(v))) for v in channels["gear"]],
         "time": [round(float(v), 3) for v in channels["time"]],
         "delta": [round(float(v), 3) for v in channels["delta"]],
+        "curvature": [round(float(v), 4) for v in channels["curvature"]],
+        "lat_g": [round(float(v), 2) for v in channels["lat_g"]],
+        "long_g": [round(float(v), 2) for v in channels["long_g"]],
     }
 
 

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { loadSession } from './lib/loadSession.js'
 import TrackMap, { formatLapTime } from './components/TrackMap.jsx'
 import Pairwise from './components/Pairwise.jsx'
+import VehicleDynamics from './components/VehicleDynamics.jsx'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
   { id: 'pairwise', label: 'Pairwise' },
+  { id: 'dynamics', label: 'Dynamics' },
 ]
 
 export default function App() {
@@ -52,7 +54,9 @@ export default function App() {
         ))}
         </nav>
         <main className="rise rise-2">
-          {view === 'replay' ? <TrackMap session={session} /> : <Pairwise session={session} />}
+          {view === 'replay' && <TrackMap session={session} />}
+          {view === 'pairwise' && <Pairwise session={session} />}
+          {view === 'dynamics' && <VehicleDynamics session={session} />}
         </main>
       </div>
     </>
