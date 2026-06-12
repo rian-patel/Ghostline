@@ -24,7 +24,7 @@ def main():
     args = parser.parse_args()
 
     session = load_quali_session(args.year, args.gp, args.session)
-    laps = get_fastest_laps(session)
+    laps, teams = get_fastest_laps(session)
 
     grids = {}
     for code, lap in laps.items():
@@ -47,6 +47,7 @@ def main():
                                              lap_time, pole_time)
         drivers[code] = {
             "lap_time": round(lap_time, 3),
+            "team": teams[code],
             "channels": channels,
         }
 

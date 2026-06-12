@@ -81,18 +81,22 @@ export default function TrackMap({ session }) {
   speedRef.current = speed
   selectedRef.current = selected
 
-  const drivers = useMemo(
-    () =>
-      Object.entries(session.drivers)
-        .sort((a, b) => a[1].lap_time - b[1].lap_time)
-        .map(([code, d], i) => ({
-          code,
-          lapTime: d.lap_time,
-          channels: d.channels,
-          color: `hsl(${Math.round((i * 137.5) % 360)} 85% 62%)`,
-        })),
-    [session],
-  )
+  // JSON driver order is the official classification, so drivers[0] is pole.
+  // Dots use team colors; the second car of a team is drawn hollow.
+  const drivers = useMemo(() => {
+    const seen = {}
+    return Object.entries(session.drivers).map(([code, d], i) => {
+      const teamColor = d.team?.color || ''
+      const nthOfTeam = teamColor ? (seen[teamColor] = (seen[teamColor] ?? 0) + 1) : 1
+      return {
+        code,
+        lapTime: d.lap_time,
+        channels: d.channels,
+        color: teamColor || `hsl(${Math.round((i * 137.5) % 360)} 85% 62%)`,
+        hollow: nthOfTeam > 1,
+      }
+    })
+  }, [session])
 
   const maxTime = useMemo(
     () => Math.max(...drivers.map((d) => d.channels.time[d.channels.time.length - 1])),
@@ -126,13 +130,21 @@ export default function TrackMap({ session }) {
       const p = sampleAtTime(d.channels, timeRef.current)
       const sel = d.code === selectedRef.current
       ctx.globalAlpha = dim ? 0.25 : 1
-      ctx.fillStyle = d.color
       ctx.beginPath()
       ctx.arc(t.toX(p.x), t.toY(p.y), sel ? 8 : 5, 0, Math.PI * 2)
-      ctx.fill()
+      if (d.hollow) {
+        ctx.strokeStyle = d.color
+        ctx.lineWidth = 2.5
+        ctx.stroke()
+      } else {
+        ctx.fillStyle = d.color
+        ctx.fill()
+      }
       if (sel) {
         ctx.strokeStyle = '#ff3b30'
         ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(t.toX(p.x), t.toY(p.y), 11, 0, Math.PI * 2)
         ctx.stroke()
       }
     }
@@ -259,7 +271,7 @@ export default function TrackMap({ session }) {
         </div>
       </div>
       <div className="panel" style={{ minWidth: 230, flex: 1 }}>
-        <h2 className="panel-label">Gap to fastest / live</h2>
+        <h2 className="panel-label">Gap to pole / live</h2>
         {tower.map((d, i) => {
           const cls = [
             'tower-row',
@@ -271,7 +283,14 @@ export default function TrackMap({ session }) {
           return (
             <div key={d.code} onClick={() => toggleSelect(d.code)} className={cls}>
               <span className="tower-pos">{i + 1}</span>
-              <span className="tower-dot" style={{ background: d.color }} />
+              <span
+                className="tower-dot"
+                style={
+                  d.hollow
+                    ? { background: 'transparent', border: `2px solid ${d.color}` }
+                    : { background: d.color }
+                }
+              />
               <span className="tower-code">{d.code}</span>
               <span className={`tower-gap${i === 0 ? ' tower-gap--best' : ''}`}>
                 {d.gap > 0 ? `+${d.gap.toFixed(3)}` : d.gap.toFixed(3)}

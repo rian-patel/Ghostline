@@ -27,7 +27,7 @@ export default function App() {
           GHOST<span className="line">LINE</span>
         </h1>
         <div className="session-meta">
-          {session.meta.gp} {session.meta.year} · {session.meta.session} · FASTEST{' '}
+          {session.meta.gp} {session.meta.year} · {session.meta.session} · POLE{' '}
           <b>{session.meta.pole_driver}</b>{' '}
           <span className="best">{formatLapTime(session.meta.pole_time)}</span>
         </div>

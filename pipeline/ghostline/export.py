@@ -26,6 +26,7 @@ def export_session(meta, drivers, out_path):
         "meta": meta,
         "drivers": {
             code: {"lap_time": d["lap_time"],
+                   "team": d["team"],
                    "channels": _round_channels(d["channels"])}
             for code, d in drivers.items()
         },

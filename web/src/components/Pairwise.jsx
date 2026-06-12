@@ -110,13 +110,8 @@ function GainLossMap({ session, codeA, slopes }) {
 }
 
 export default function Pairwise({ session }) {
-  const codes = useMemo(
-    () =>
-      Object.entries(session.drivers)
-        .sort((a, b) => a[1].lap_time - b[1].lap_time)
-        .map(([code]) => code),
-    [session],
-  )
+  // JSON driver order is the official classification (pole first).
+  const codes = useMemo(() => Object.keys(session.drivers), [session])
 
   const [codeA, setCodeA] = useState(codes[0])
   const [codeB, setCodeB] = useState(codes[1])
@@ -197,26 +192,38 @@ export default function Pairwise({ session }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 18, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-        <label className="mono" style={{ color: COLOR_A, fontSize: 13 }}>
-          A{' '}
-          <select className="select" value={codeA} onChange={(e) => setCodeA(e.target.value)}>
-            {codes.map((c) => (
-              <option key={c} value={c}>
-                {c} — {formatLapTime(session.drivers[c].lap_time)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="mono" style={{ color: COLOR_B, fontSize: 13 }}>
-          B{' '}
-          <select className="select" value={codeB} onChange={(e) => setCodeB(e.target.value)}>
-            {codes.map((c) => (
-              <option key={c} value={c}>
-                {c} — {formatLapTime(session.drivers[c].lap_time)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {[
+          { role: 'A', code: codeA, set: setCodeA, color: COLOR_A },
+          { role: 'B', code: codeB, set: setCodeB, color: COLOR_B },
+        ].map(({ role, code, set, color }) => {
+          const team = session.drivers[code].team
+          return (
+            <label key={role} className="mono" style={{ color, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {role}{' '}
+              <select className="select" value={code} onChange={(e) => set(e.target.value)}>
+                {codes.map((c) => (
+                  <option key={c} value={c}>
+                    {c} — {formatLapTime(session.drivers[c].lap_time)}
+                  </option>
+                ))}
+              </select>
+              {team?.name && (
+                <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: '50%',
+                      background: team.color || '#555',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {team.name}
+                </span>
+              )}
+            </label>
+          )
+        })}
         <span className="mono muted" style={{ fontSize: 12 }}>
           positive Δt = {codeB} behind {codeA}
         </span>
