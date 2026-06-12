@@ -17,36 +17,35 @@ export default function App() {
     loadSession().then(setSession).catch((e) => setError(e.message))
   }, [])
 
-  if (error) return <p style={{ color: '#f66', padding: 24 }}>Could not load session: {error}</p>
-  if (!session) return <p style={{ color: '#aaa', padding: 24 }}>Loading session…</p>
+  if (error) return <p className="status-note status-note--error">Could not load session: {error}</p>
+  if (!session) return <p className="status-note">Loading session…</p>
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', color: '#eee', padding: 24 }}>
-      <h1 style={{ margin: '0 0 4px' }}>Ghostline</h1>
-      <p style={{ margin: '0 0 16px', color: '#aaa' }}>
-        {session.meta.gp} {session.meta.year} — {session.meta.session} · Pole:{' '}
-        {session.meta.pole_driver} {formatLapTime(session.meta.pole_time)}
-      </p>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+    <div className="app">
+      <header className="masthead rise">
+        <h1 className="wordmark" data-text="GHOSTLINE">
+          GHOST<span className="line">LINE</span>
+        </h1>
+        <div className="session-meta">
+          {session.meta.gp} {session.meta.year} · {session.meta.session} · FASTEST{' '}
+          <b>{session.meta.pole_driver}</b>{' '}
+          <span className="best">{formatLapTime(session.meta.pole_time)}</span>
+        </div>
+      </header>
+      <nav className="tabs rise rise-1">
         {VIEWS.map((v) => (
           <button
             key={v.id}
             onClick={() => setView(v.id)}
-            style={{
-              background: view === v.id ? '#555' : '#222',
-              color: '#eee',
-              border: '1px solid #444',
-              borderRadius: 4,
-              padding: '6px 16px',
-              cursor: 'pointer',
-              font: 'inherit',
-            }}
+            className={`tab${view === v.id ? ' tab--active' : ''}`}
           >
             {v.label}
           </button>
         ))}
-      </div>
-      {view === 'replay' ? <TrackMap session={session} /> : <Pairwise session={session} />}
+      </nav>
+      <main className="rise rise-2">
+        {view === 'replay' ? <TrackMap session={session} /> : <Pairwise session={session} />}
+      </main>
     </div>
   )
 }

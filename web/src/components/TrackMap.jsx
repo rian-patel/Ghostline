@@ -64,16 +64,6 @@ function sampleAtTime(ch, t) {
   }
 }
 
-const buttonStyle = {
-  background: '#222',
-  color: '#eee',
-  border: '1px solid #444',
-  borderRadius: 4,
-  padding: '4px 12px',
-  cursor: 'pointer',
-  font: 'inherit',
-}
-
 export default function TrackMap({ session }) {
   const canvasRef = useRef(null)
   const timeRef = useRef(0)
@@ -99,7 +89,7 @@ export default function TrackMap({ session }) {
           code,
           lapTime: d.lap_time,
           channels: d.channels,
-          color: `hsl(${Math.round((i * 137.5) % 360)} 85% 60%)`,
+          color: `hsl(${Math.round((i * 137.5) % 360)} 85% 62%)`,
         })),
     [session],
   )
@@ -141,7 +131,7 @@ export default function TrackMap({ session }) {
       ctx.arc(t.toX(p.x), t.toY(p.y), sel ? 8 : 5, 0, Math.PI * 2)
       ctx.fill()
       if (sel) {
-        ctx.strokeStyle = '#fff'
+        ctx.strokeStyle = '#ff3b30'
         ctx.lineWidth = 2
         ctx.stroke()
       }
@@ -165,7 +155,7 @@ export default function TrackMap({ session }) {
 
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
       ctx.globalAlpha = 1
-      ctx.strokeStyle = '#666'
+      ctx.strokeStyle = '#39404a'
       ctx.lineWidth = 2
       ctx.stroke(trackPath)
 
@@ -228,92 +218,67 @@ export default function TrackMap({ session }) {
     .sort((a, b) => a.gap - b.gap || a.lapTime - b.lapTime)
 
   return (
-    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-      <div>
+    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div className="panel" style={{ flexShrink: 1, minWidth: 0 }}>
+        <h2 className="panel-label">
+          Ghost replay <span className="mark">/ all laps start together</span>
+        </h2>
         <canvas
           ref={canvasRef}
           onClick={onCanvasClick}
-          style={{
-            width: WIDTH,
-            height: HEIGHT,
-            background: '#111',
-            borderRadius: 8,
-            cursor: 'pointer',
-          }}
+          className="board"
+          style={{ width: WIDTH, height: HEIGHT, maxWidth: '100%', cursor: 'pointer' }}
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-          <button onClick={onPlayPause} style={{ ...buttonStyle, minWidth: 70 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+          <button onClick={onPlayPause} className="btn" style={{ minWidth: 72 }}>
             {playing ? 'Pause' : 'Play'}
           </button>
           <input
             type="range"
+            className="scrub"
             min={0}
             max={maxTime}
             step={0.05}
             value={displayTime}
             onChange={onScrub}
-            style={{ flex: 1 }}
           />
-          <span
-            style={{
-              fontFamily: 'ui-monospace, monospace',
-              color: '#aaa',
-              minWidth: 160,
-              textAlign: 'right',
-            }}
-          >
+          <span className="mono muted" style={{ fontSize: 13, minWidth: 150, textAlign: 'right' }}>
             {formatLapTime(displayTime)} / {formatLapTime(maxTime)}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           {SPEEDS.map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
-              style={{ ...buttonStyle, background: s === speed ? '#555' : '#222' }}
+              className={`btn${s === speed ? ' btn--active' : ''}`}
             >
               {s}x
             </button>
           ))}
         </div>
       </div>
-      <div style={{ minWidth: 210 }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#aaa' }}>
-          Gap to pole (live)
-        </h3>
-        {tower.map((d, i) => (
-          <div
-            key={d.code}
-            onClick={() => toggleSelect(d.code)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '3px 8px',
-              fontFamily: 'ui-monospace, monospace',
-              fontSize: 13,
-              cursor: 'pointer',
-              borderRadius: 4,
-              background: d.code === selected ? '#333' : 'transparent',
-              opacity: selected && d.code !== selected ? 0.5 : 1,
-            }}
-          >
-            <span style={{ width: 20, textAlign: 'right', color: '#888' }}>{i + 1}</span>
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: d.color,
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ width: 36 }}>{d.code}</span>
-            <span style={{ marginLeft: 'auto' }}>
-              {d.gap > 0 ? `+${d.gap.toFixed(3)}` : d.gap.toFixed(3)}
-            </span>
-          </div>
-        ))}
+      <div className="panel" style={{ minWidth: 230, flex: 1 }}>
+        <h2 className="panel-label">Gap to fastest / live</h2>
+        {tower.map((d, i) => {
+          const cls = [
+            'tower-row',
+            d.code === selected ? 'tower-row--selected' : '',
+            selected && d.code !== selected ? 'tower-row--dim' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+          return (
+            <div key={d.code} onClick={() => toggleSelect(d.code)} className={cls}>
+              <span className="tower-pos">{i + 1}</span>
+              <span className="tower-dot" style={{ background: d.color }} />
+              <span className="tower-code">{d.code}</span>
+              <span className={`tower-gap${i === 0 ? ' tower-gap--best' : ''}`}>
+                {d.gap > 0 ? `+${d.gap.toFixed(3)}` : d.gap.toFixed(3)}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

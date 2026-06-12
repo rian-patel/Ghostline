@@ -11,10 +11,11 @@ import {
 } from 'recharts'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
 
-const COLOR_A = '#5ecbff'
+const COLOR_A = '#ff3b30'
 const COLOR_B = '#fbbf24'
 const GAIN_COLOR = '#4ade80'
 const LOSS_COLOR = '#f87171'
+const NEUTRAL_COLOR = '#3a3f46'
 // Smoothed per-5m delta slope below this is shown as neutral (delta is
 // rounded to 1ms, so tiny slopes are quantization noise).
 const SLOPE_THRESHOLD = 0.0008
@@ -25,27 +26,35 @@ const SLOPE_THRESHOLD = 0.0008
 // own final delta — which is exact against official lap times.
 const at = (arr, i) => arr[i < arr.length ? i : arr.length - 1]
 
+const axisTick = { fill: '#6b7480', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
 const tooltipStyle = {
-  contentStyle: { background: '#15181d', border: '1px solid #333', fontSize: 12 },
-  labelStyle: { color: '#aaa' },
+  contentStyle: {
+    background: '#161a21',
+    border: '1px solid #232830',
+    borderRadius: 6,
+    fontSize: 12,
+    fontFamily: 'IBM Plex Mono, monospace',
+  },
+  labelStyle: { color: '#8b939e' },
   labelFormatter: (d) => `${Math.round(d)} m`,
 }
 
 function ChannelChart({ data, keyA, keyB, codeA, codeB, label, type = 'linear', domain }) {
   return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>{label}</div>
+    <div style={{ marginTop: 18 }}>
+      <div className="panel-label" style={{ marginBottom: 6 }}>{label}</div>
       <ResponsiveContainer width="100%" height={140}>
         <LineChart data={data} syncId="pairwise" margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#23272e" strokeDasharray="3 3" />
+          <CartesianGrid stroke="#1d2129" strokeDasharray="3 3" />
           <XAxis
             dataKey="d"
             type="number"
             domain={[0, 'dataMax']}
-            tick={{ fill: '#777', fontSize: 11 }}
+            tick={axisTick}
             tickFormatter={(v) => `${Math.round(v)}m`}
+            stroke="#232830"
           />
-          <YAxis tick={{ fill: '#777', fontSize: 11 }} width={44} domain={domain} />
+          <YAxis tick={axisTick} width={44} domain={domain} stroke="#232830" />
           <Tooltip {...tooltipStyle} />
           <Line type={type} dataKey={keyA} name={codeA} stroke={COLOR_A} dot={false} isAnimationActive={false} strokeWidth={1.5} />
           <Line type={type} dataKey={keyB} name={codeB} stroke={COLOR_B} dot={false} isAnimationActive={false} strokeWidth={1.5} />
@@ -83,26 +92,21 @@ function GainLossMap({ session, codeA, slopes }) {
       const y1 = at(ch.y, i)
       if (x0 === x1 && y0 === y1) continue
       const s = slopes[i]
-      ctx.strokeStyle = s > SLOPE_THRESHOLD ? GAIN_COLOR : s < -SLOPE_THRESHOLD ? LOSS_COLOR : '#3a3f46'
+      ctx.strokeStyle = s > SLOPE_THRESHOLD ? GAIN_COLOR : s < -SLOPE_THRESHOLD ? LOSS_COLOR : NEUTRAL_COLOR
       ctx.beginPath()
       ctx.moveTo(t.toX(x0), t.toY(y0))
       ctx.lineTo(t.toX(x1), t.toY(y1))
       ctx.stroke()
     }
     // close the loop across the start/finish line in neutral
-    ctx.strokeStyle = '#3a3f46'
+    ctx.strokeStyle = NEUTRAL_COLOR
     ctx.beginPath()
     ctx.moveTo(t.toX(ch.x[ch.x.length - 1]), t.toY(ch.y[ch.y.length - 1]))
     ctx.lineTo(t.toX(ch.x[0]), t.toY(ch.y[0]))
     ctx.stroke()
   }, [session, codeA, slopes])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: 380, height: 300, background: '#111', borderRadius: 8, flexShrink: 0 }}
-    />
-  )
+  return <canvas ref={canvasRef} className="board" style={{ width: 380, height: 300, maxWidth: '100%' }} />
 }
 
 export default function Pairwise({ session }) {
@@ -188,23 +192,14 @@ export default function Pairwise({ session }) {
     })
   }, [session, codeA, codeB, data])
 
-  const selectStyle = {
-    background: '#15181d',
-    color: '#eee',
-    border: '1px solid #333',
-    borderRadius: 4,
-    padding: '6px 10px',
-    font: 'inherit',
-  }
-
   const corners = session.meta.corners ?? []
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 8 }}>
-        <label style={{ color: COLOR_A }}>
+      <div style={{ display: 'flex', gap: 18, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <label className="mono" style={{ color: COLOR_A, fontSize: 13 }}>
           A{' '}
-          <select value={codeA} onChange={(e) => setCodeA(e.target.value)} style={selectStyle}>
+          <select className="select" value={codeA} onChange={(e) => setCodeA(e.target.value)}>
             {codes.map((c) => (
               <option key={c} value={c}>
                 {c} — {formatLapTime(session.drivers[c].lap_time)}
@@ -212,9 +207,9 @@ export default function Pairwise({ session }) {
             ))}
           </select>
         </label>
-        <label style={{ color: COLOR_B }}>
+        <label className="mono" style={{ color: COLOR_B, fontSize: 13 }}>
           B{' '}
-          <select value={codeB} onChange={(e) => setCodeB(e.target.value)} style={selectStyle}>
+          <select className="select" value={codeB} onChange={(e) => setCodeB(e.target.value)}>
             {codes.map((c) => (
               <option key={c} value={c}>
                 {c} — {formatLapTime(session.drivers[c].lap_time)}
@@ -222,76 +217,78 @@ export default function Pairwise({ session }) {
             ))}
           </select>
         </label>
-        <span style={{ color: '#888', fontSize: 13 }}>
-          Positive Δt = {codeB} behind {codeA}
+        <span className="mono muted" style={{ fontSize: 12 }}>
+          positive Δt = {codeB} behind {codeA}
         </span>
       </div>
 
-      <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>
-        Time delta {codeB} − {codeA} (s) vs distance
-      </div>
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} syncId="pairwise" margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#23272e" strokeDasharray="3 3" />
-          <XAxis
-            dataKey="d"
-            type="number"
-            domain={[0, 'dataMax']}
-            tick={{ fill: '#777', fontSize: 11 }}
-            tickFormatter={(v) => `${Math.round(v)}m`}
-          />
-          <YAxis tick={{ fill: '#777', fontSize: 11 }} width={44} />
-          <Tooltip {...tooltipStyle} />
-          <ReferenceLine y={0} stroke="#888" />
-          {corners.map((c) => (
-            <ReferenceLine
-              key={`${c.number}${c.letter}`}
-              x={c.distance}
-              stroke="#2c313a"
-              label={{ value: `T${c.number}${c.letter}`, fill: '#666', fontSize: 10, position: 'top' }}
+      <div className="panel">
+        <h2 className="panel-label">
+          Time delta <span className="mark">/ {codeB} − {codeA} (s) vs distance</span>
+        </h2>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={data} syncId="pairwise" margin={{ top: 14, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke="#1d2129" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="d"
+              type="number"
+              domain={[0, 'dataMax']}
+              tick={axisTick}
+              tickFormatter={(v) => `${Math.round(v)}m`}
+              stroke="#232830"
             />
-          ))}
-          <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke="#c084fc" dot={false} isAnimationActive={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
+            <YAxis tick={axisTick} width={44} stroke="#232830" />
+            <Tooltip {...tooltipStyle} />
+            <ReferenceLine y={0} stroke="#5d6671" />
+            {corners.map((c) => (
+              <ReferenceLine
+                key={`${c.number}${c.letter}`}
+                x={c.distance}
+                stroke="#262c35"
+                label={{ value: `T${c.number}${c.letter}`, fill: '#5d6671', fontSize: 10, position: 'top' }}
+              />
+            ))}
+            <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke="#c084fc" dot={false} isAnimationActive={false} strokeWidth={1.5} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-      <ChannelChart data={data} keyA="speedA" keyB="speedB" codeA={codeA} codeB={codeB} label="Speed (km/h)" />
-      <ChannelChart data={data} keyA="throttleA" keyB="throttleB" codeA={codeA} codeB={codeB} label="Throttle (%)" domain={[0, 100]} />
-      <ChannelChart data={data} keyA="brakeA" keyB="brakeB" codeA={codeA} codeB={codeB} label="Brake (on/off)" type="stepAfter" domain={[0, 1]} />
-      <ChannelChart data={data} keyA="gearA" keyB="gearB" codeA={codeA} codeB={codeB} label="Gear" type="stepAfter" domain={[1, 8]} />
+      <div className="panel">
+        <h2 className="panel-label">Telemetry traces</h2>
+        <div style={{ marginTop: -18 }}>
+          <ChannelChart data={data} keyA="speedA" keyB="speedB" codeA={codeA} codeB={codeB} label="Speed (km/h)" />
+          <ChannelChart data={data} keyA="throttleA" keyB="throttleB" codeA={codeA} codeB={codeB} label="Throttle (%)" domain={[0, 100]} />
+          <ChannelChart data={data} keyA="brakeA" keyB="brakeB" codeA={codeA} codeB={codeB} label="Brake (on/off)" type="stepAfter" domain={[0, 1]} />
+          <ChannelChart data={data} keyA="gearA" keyB="gearB" codeA={codeA} codeB={codeB} label="Gear" type="stepAfter" domain={[1, 8]} />
+        </div>
+      </div>
 
-      <div style={{ display: 'flex', gap: 24, marginTop: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>
-            Where {codeA} gains (green) / loses (red) vs {codeB}
-          </div>
+      <div style={{ display: 'flex', gap: 16, marginTop: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
+        <div className="panel" style={{ flexShrink: 0 }}>
+          <h2 className="panel-label">
+            Track map <span className="mark">/ <span className="gain">{codeA} gains</span> · <span className="loss">loses</span> vs {codeB}</span>
+          </h2>
           <GainLossMap session={session} codeA={codeA} slopes={slopes} />
         </div>
         {cornerRows.length > 0 && (
-          <div>
-            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Corner by corner</div>
-            <table style={{ borderCollapse: 'collapse', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>
+          <div className="panel" style={{ flex: 1, minWidth: 320 }}>
+            <h2 className="panel-label">Corner by corner</h2>
+            <table className="corner-table">
               <thead>
-                <tr style={{ color: '#888' }}>
-                  <th style={{ textAlign: 'left', padding: '4px 12px 4px 0' }}>Corner</th>
-                  <th style={{ textAlign: 'right', padding: '4px 12px' }}>{codeA} min (km/h)</th>
-                  <th style={{ textAlign: 'right', padding: '4px 12px' }}>{codeB} min (km/h)</th>
-                  <th style={{ textAlign: 'right', padding: '4px 0 4px 12px' }}>Δt for {codeA} (s)</th>
+                <tr>
+                  <th>Corner</th>
+                  <th>{codeA} min km/h</th>
+                  <th>{codeB} min km/h</th>
+                  <th>Δt for {codeA} (s)</th>
                 </tr>
               </thead>
               <tbody>
                 {cornerRows.map((r) => (
-                  <tr key={r.label} style={{ borderTop: '1px solid #23272e' }}>
-                    <td style={{ padding: '4px 12px 4px 0' }}>{r.label}</td>
-                    <td style={{ textAlign: 'right', padding: '4px 12px' }}>{r.minA}</td>
-                    <td style={{ textAlign: 'right', padding: '4px 12px' }}>{r.minB}</td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        padding: '4px 0 4px 12px',
-                        color: r.gained > 0.005 ? GAIN_COLOR : r.gained < -0.005 ? LOSS_COLOR : '#888',
-                      }}
-                    >
+                  <tr key={r.label}>
+                    <td>{r.label}</td>
+                    <td>{r.minA}</td>
+                    <td>{r.minB}</td>
+                    <td className={r.gained > 0.005 ? 'gain' : r.gained < -0.005 ? 'loss' : 'muted'}>
                       {r.gained > 0 ? `+${r.gained.toFixed(3)}` : r.gained.toFixed(3)}
                     </td>
                   </tr>
