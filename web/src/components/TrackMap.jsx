@@ -14,9 +14,9 @@ export function formatLapTime(seconds) {
   return `${m}:${s}`
 }
 
-// Map track x/y (meters) onto the canvas: fit with padding, preserve aspect
+// Map track x/y (meters) onto a canvas: fit with padding, preserve aspect
 // ratio, flip y (canvas y grows downward).
-function fitTransform(xs, ys) {
+export function fitTransform(xs, ys, w, h, pad) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
   for (let i = 0; i < xs.length; i++) {
     if (xs[i] < minX) minX = xs[i]
@@ -24,15 +24,12 @@ function fitTransform(xs, ys) {
     if (ys[i] < minY) minY = ys[i]
     if (ys[i] > maxY) maxY = ys[i]
   }
-  const scale = Math.min(
-    (WIDTH - 2 * PADDING) / (maxX - minX),
-    (HEIGHT - 2 * PADDING) / (maxY - minY),
-  )
+  const scale = Math.min((w - 2 * pad) / (maxX - minX), (h - 2 * pad) / (maxY - minY))
   const cx = (minX + maxX) / 2
   const cy = (minY + maxY) / 2
   return {
-    toX: (x) => WIDTH / 2 + (x - cx) * scale,
-    toY: (y) => HEIGHT / 2 - (y - cy) * scale,
+    toX: (x) => w / 2 + (x - cx) * scale,
+    toY: (y) => h / 2 - (y - cy) * scale,
   }
 }
 
@@ -123,7 +120,7 @@ export default function TrackMap({ session }) {
     ctx.scale(dpr, dpr)
 
     const pole = drivers[0].channels
-    const t = fitTransform(pole.x, pole.y)
+    const t = fitTransform(pole.x, pole.y, WIDTH, HEIGHT, PADDING)
     transformRef.current = t
 
     const trackPath = new Path2D()

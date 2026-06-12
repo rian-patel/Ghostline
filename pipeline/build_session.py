@@ -50,6 +50,16 @@ def main():
             "channels": channels,
         }
 
+    circuit_info = session.get_circuit_info()
+    corners = [
+        {
+            "number": int(row["Number"]),
+            "letter": str(row["Letter"]) if row["Letter"] else "",
+            "distance": round(float(row["Distance"]), 1),
+        }
+        for _, row in circuit_info.corners.iterrows()
+    ] if circuit_info is not None else []
+
     meta = {
         "year": args.year,
         "gp": args.gp,
@@ -57,6 +67,7 @@ def main():
         "track_length": round(float(pole_grid["distance"][-1]), 1),
         "pole_driver": pole_code,
         "pole_time": drivers[pole_code]["lap_time"],
+        "corners": corners,
     }
 
     slug = args.gp.lower().replace(" ", "_")
