@@ -4,8 +4,6 @@ const WIDTH = 800
 const HEIGHT = 500
 const PADDING = 24
 const SPEEDS = [0.25, 0.5, 1, 2]
-// Muted sector hues, distinct from the team-colored car dots.
-const SECTOR_COLORS = ['#3f6c9e', '#9e7a3f', '#7a4f9e']
 
 export function formatLapTime(seconds) {
   // Round to ms first so e.g. 59.9999 carries into the minute (1:00.000,
@@ -145,47 +143,56 @@ export default function TrackMap({ session }) {
     const n = pole.x.length
     const idxAt = (d) => Math.max(0, Math.min(Math.round(d / 5), n - 1))
 
-    // Split the closed track outline into colored sector arcs.
-    const bounds =
-      sectorsDist.length === 2
-        ? [0, idxAt(sectorsDist[0]), idxAt(sectorsDist[1]), n - 1]
-        : [0, n - 1]
-    const sectorPaths = []
-    for (let s = 0; s < bounds.length - 1; s++) {
-      const p = new Path2D()
-      for (let i = bounds[s]; i <= bounds[s + 1]; i++) {
-        const px = t.toX(pole.x[i])
-        const py = t.toY(pole.y[i])
-        if (i === bounds[s]) p.moveTo(px, py)
-        else p.lineTo(px, py)
-      }
-      sectorPaths.push(p)
+    // One closed outline, drawn as a thick double line (dark casing + light core).
+    const trackPath = new Path2D()
+    for (let i = 0; i < n; i++) {
+      const px = t.toX(pole.x[i])
+      const py = t.toY(pole.y[i])
+      if (i === 0) trackPath.moveTo(px, py)
+      else trackPath.lineTo(px, py)
     }
+    trackPath.closePath()
 
-    // A perpendicular tick across the track at grid index i.
-    const tickAt = (i, halfLen) => {
+    // Geometry at a grid index: canvas point, travel angle, cross-track unit
+    // (px,py), and outward normal (ox,oy) away from the track centroid.
+    const geomAt = (i) => {
       const a = Math.max(0, i - 1)
       const b = Math.min(n - 1, i + 1)
       const cx = t.toX(pole.x[i])
       const cy = t.toY(pole.y[i])
-      let hx = t.toX(pole.x[b]) - t.toX(pole.x[a])
-      let hy = t.toY(pole.y[b]) - t.toY(pole.y[a])
-      const hl = Math.hypot(hx, hy) || 1
-      const px = -hy / hl
-      const py = hx / hl
+      const angle = Math.atan2(
+        t.toY(pole.y[b]) - t.toY(pole.y[a]),
+        t.toX(pole.x[b]) - t.toX(pole.x[a]),
+      )
+      let ox = cx - WIDTH / 2
+      let oy = cy - HEIGHT / 2
+      const ol = Math.hypot(ox, oy) || 1
       return {
         cx,
         cy,
-        x1: cx + px * halfLen,
-        y1: cy + py * halfLen,
-        x2: cx - px * halfLen,
-        y2: cy - py * halfLen,
+        angle,
+        px: -Math.sin(angle),
+        py: Math.cos(angle),
+        ox: ox / ol,
+        oy: oy / ol,
       }
     }
-    const sfTick = tickAt(0, 13)
-    const boundaryTicks =
+
+    const sf = geomAt(0)
+    const dividers =
       sectorsDist.length === 2
-        ? [tickAt(idxAt(sectorsDist[0]), 9), tickAt(idxAt(sectorsDist[1]), 9)]
+        ? [geomAt(idxAt(sectorsDist[0])), geomAt(idxAt(sectorsDist[1]))]
+        : []
+    const sectorLabels =
+      sectorsDist.length === 2
+        ? [
+            [0, idxAt(sectorsDist[0])],
+            [idxAt(sectorsDist[0]), idxAt(sectorsDist[1])],
+            [idxAt(sectorsDist[1]), n - 1],
+          ].map(([i0, i1], k) => {
+            const g = geomAt(Math.round((i0 + i1) / 2))
+            return { x: g.cx + g.ox * 16, y: g.cy + g.oy * 16, text: `S${k + 1}` }
+          })
         : []
 
     const drawCar = (d, dim) => {
@@ -229,31 +236,50 @@ export default function TrackMap({ session }) {
 
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
       ctx.globalAlpha = 1
-      ctx.lineWidth = 3
       ctx.lineJoin = 'round'
-      sectorPaths.forEach((p, s) => {
-        ctx.strokeStyle = sectorsDist.length === 2 ? SECTOR_COLORS[s] : '#39404a'
-        ctx.stroke(p)
-      })
-
-      // Sector boundary ticks, then the brighter start/finish line.
+      // double-line track: dark casing, then a light core on top
+      ctx.strokeStyle = '#2b3038'
+      ctx.lineWidth = 6
+      ctx.stroke(trackPath)
+      ctx.strokeStyle = '#cbd0d8'
       ctx.lineWidth = 2
-      boundaryTicks.forEach((tk, k) => {
-        ctx.strokeStyle = SECTOR_COLORS[k + 1]
+      ctx.stroke(trackPath)
+
+      // neutral lines separating the sectors
+      ctx.strokeStyle = '#eef0f2'
+      ctx.lineWidth = 2
+      dividers.forEach((g) => {
         ctx.beginPath()
-        ctx.moveTo(tk.x1, tk.y1)
-        ctx.lineTo(tk.x2, tk.y2)
+        ctx.moveTo(g.cx + g.px * 10, g.cy + g.py * 10)
+        ctx.lineTo(g.cx - g.px * 10, g.cy - g.py * 10)
         ctx.stroke()
       })
-      ctx.strokeStyle = '#f3f4f6'
-      ctx.lineWidth = 3
-      ctx.beginPath()
-      ctx.moveTo(sfTick.x1, sfTick.y1)
-      ctx.lineTo(sfTick.x2, sfTick.y2)
-      ctx.stroke()
+
+      // sector labels + S/F, identified by text rather than color
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.font = '600 10px IBM Plex Mono, monospace'
+      ctx.fillStyle = '#8b939e'
+      sectorLabels.forEach((l) => ctx.fillText(l.text, l.x, l.y))
+
+      // checkered start/finish line, oriented across the track
+      ctx.save()
+      ctx.translate(sf.cx, sf.cy)
+      ctx.rotate(sf.angle)
+      const SQ = 4
+      const ROWS = 2
+      const COLS = 7
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          ctx.fillStyle = (r + c) % 2 === 0 ? '#f3f4f6' : '#11141a'
+          ctx.fillRect((-ROWS / 2 + r) * SQ, (-COLS / 2 + c) * SQ, SQ, SQ)
+        }
+      }
+      ctx.restore()
       ctx.fillStyle = '#f3f4f6'
-      ctx.font = '600 11px IBM Plex Mono, monospace'
-      ctx.fillText('S/F', sfTick.cx + 8, sfTick.cy - 8)
+      ctx.fillText('S/F', sf.cx + sf.ox * 18, sf.cy + sf.oy * 18)
+      ctx.textAlign = 'start'
+      ctx.textBaseline = 'alphabetic'
 
       const sel = selectedRef.current
       for (const d of drivers) {
@@ -369,8 +395,8 @@ export default function TrackMap({ session }) {
             <span style={{ width: 9 }} />
             <span style={{ width: 36 }} />
             <span className="tower-gap">GAP</span>
-            {['S1', 'S2', 'S3'].map((s, k) => (
-              <span key={s} className="tower-sec" style={{ color: SECTOR_COLORS[k] }}>
+            {['S1', 'S2', 'S3'].map((s) => (
+              <span key={s} className="tower-sec">
                 {s}
               </span>
             ))}
