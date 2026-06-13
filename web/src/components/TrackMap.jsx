@@ -348,7 +348,7 @@ export default function TrackMap({ session }) {
 
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <div className="panel" style={{ flexShrink: 1, minWidth: 0 }}>
+      <div className="panel" style={{ flex: '1 1 460px', minWidth: 0 }}>
         <h2 className="panel-label">
           Ghost replay <span className="mark">/ all laps start together</span>
         </h2>
@@ -356,7 +356,13 @@ export default function TrackMap({ session }) {
           ref={canvasRef}
           onClick={onCanvasClick}
           className="board"
-          style={{ width: WIDTH, height: HEIGHT, maxWidth: '100%', cursor: 'pointer' }}
+          style={{
+            width: '100%',
+            maxWidth: WIDTH,
+            height: 'auto',
+            aspectRatio: `${WIDTH} / ${HEIGHT}`,
+            cursor: 'pointer',
+          }}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
           <button onClick={onPlayPause} className="btn" style={{ minWidth: 72 }}>
