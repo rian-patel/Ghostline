@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Scatter, ScatterChart, XAxis, YAxis } from 'recharts'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
+import { CHART, axisTick } from '../lib/chartTheme.js'
 
 const teamSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
-const axisTick = { fill: '#6b7480', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
 const G_TICKS = [-6, -4, -2, 0, 2, 4, 6]
 
 // Friction-circle reference rings at 1..5 g, drawn as rings of dots so we
@@ -149,8 +149,8 @@ export default function VehicleDynamics({ session }) {
               domain={[-6, 6]}
               ticks={G_TICKS}
               tick={axisTick}
-              stroke="#232830"
-              label={{ value: 'lateral g', fill: '#6b7480', fontSize: 11, position: 'insideBottom', offset: -2 }}
+              stroke={CHART.axis}
+              label={{ value: 'lateral g', fill: '#7c8591', fontSize: 11, position: 'insideBottom', offset: -2 }}
             />
             <YAxis
               dataKey="y"
@@ -159,8 +159,8 @@ export default function VehicleDynamics({ session }) {
               ticks={G_TICKS}
               tick={axisTick}
               width={40}
-              stroke="#232830"
-              label={{ value: 'long g', fill: '#6b7480', fontSize: 11, angle: -90, position: 'insideLeft' }}
+              stroke={CHART.axis}
+              label={{ value: 'long g', fill: '#7c8591', fontSize: 11, angle: -90, position: 'insideLeft' }}
             />
             <Scatter
               data={RING_POINTS}
@@ -181,6 +181,18 @@ export default function VehicleDynamics({ session }) {
               Grip utilization <span className="mark">/ combined g along the lap</span>
             </h2>
             <GripMap channels={channels} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+              <span className="mono muted" style={{ fontSize: 11 }}>0</span>
+              <span
+                style={{
+                  flex: 1,
+                  height: 8,
+                  borderRadius: 4,
+                  background: 'linear-gradient(90deg, rgb(58,63,70), rgb(255,209,102), rgb(255,59,48))',
+                }}
+              />
+              <span className="mono muted" style={{ fontSize: 11 }}>≥5g combined</span>
+            </div>
           </div>
           <div className="panel" style={{ flex: 1 }}>
             <h2 className="panel-label">Heaviest braking</h2>
