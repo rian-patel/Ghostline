@@ -9,9 +9,6 @@ time difference relative to pole.
 
 import numpy as np
 from scipy.signal import find_peaks
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 
 STEP_M = 5.0
 
@@ -114,10 +111,10 @@ def compute_minisectors(drivers, pole_code, track_length, curvature,
     return result, len(apexes)
 
 
-# --- Driving-style fingerprints -------------------------------------------
+# --- Driving-style features -----------------------------------------------
 
-# Per-driver corner features fed into the style fingerprint. Order matters:
-# it is the column order of the feature matrix and the radar axes.
+# Per-driver corner habits, each a plain, named quantity the frontend turns
+# into the style map and per-trait rankings. Order is the radar/bar order.
 FEATURE_NAMES = ["apex_speed", "brake_point", "throttle_app",
                  "exit_speed", "trail_brake"]
 
@@ -184,18 +181,19 @@ def _corner_features(channels, i0, i1):
     return [apex_speed, brake_point, throttle_app, exit_speed, trail_brake]
 
 
-def compute_style(drivers, corner_distances, n_clusters=4):
-    """PCA + KMeans driving-style fingerprint over the full field.
+def compute_style(drivers, corner_distances):
+    """Per-driver corner-style features, averaged over every corner.
 
-    Returns {"feature_names": [...], "drivers": {CODE: {"pc": [x, y],
-    "cluster": int, "radar": {name: raw_value}}}}, or None if there are not
-    enough corners/drivers to fit.
+    Returns {"feature_names": [...], "drivers": {CODE: {"features": {name:
+    value}}}} or None if there are too few corners/drivers. The frontend ranks
+    these raw, named quantities against the field — no clustering, so every
+    axis a viewer sees maps to one real, explainable number.
     """
     codes = list(drivers)
     if len(corner_distances) < 2 or len(codes) < 3:
         return None
 
-    vectors = {}
+    out = {}
     for code in codes:
         channels = drivers[code]["channels"]
         windows = _corner_windows(corner_distances, len(channels["speed"]))
@@ -203,28 +201,10 @@ def compute_style(drivers, corner_distances, n_clusters=4):
                              for i0, i1 in windows) if f is not None]
         if not feats:
             return None
-        vectors[code] = np.mean(np.array(feats), axis=0)
-
-    matrix = np.array([vectors[c] for c in codes])
-    scaled = StandardScaler().fit_transform(matrix)
-    pcs = PCA(n_components=2, random_state=0).fit_transform(scaled)
-    k = max(2, min(n_clusters, len(codes)))
-    labels = KMeans(n_clusters=k, n_init=10,
-                    random_state=0).fit_predict(scaled)
-
-    return {
-        "feature_names": FEATURE_NAMES,
-        "drivers": {
-            code: {
-                "pc": [round(float(pcs[i][0]), 3),
-                       round(float(pcs[i][1]), 3)],
-                "cluster": int(labels[i]),
-                "radar": {name: round(float(vectors[code][j]), 2)
-                          for j, name in enumerate(FEATURE_NAMES)},
-            }
-            for i, code in enumerate(codes)
-        },
-    }
+        mean = np.mean(np.array(feats), axis=0)
+        out[code] = {"features": {name: round(float(mean[j]), 2)
+                                  for j, name in enumerate(FEATURE_NAMES)}}
+    return {"feature_names": FEATURE_NAMES, "drivers": out}
 
 
 def classify_corner_shapes(pole_channels, corner_distances, u_flatness=0.58):

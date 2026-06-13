@@ -95,9 +95,8 @@ def main():
             corner["shape"] = shape
         style = compute_style(drivers, corner_distances)
         if style is not None:
-            n_clusters = len({d["cluster"] for d in style["drivers"].values()})
             print(f"style: {len(style['drivers'])} drivers, "
-                  f"{n_clusters} clusters")
+                  f"{len(style['feature_names'])} corner-style features")
 
     meta = {
         "year": args.year,
