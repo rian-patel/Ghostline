@@ -42,6 +42,19 @@ export default function App() {
   if (error) return <p className="status-note status-note--error">Could not load session: {error}</p>
   if (!session) return <p className="status-note">Loading session…</p>
 
+  // Two-step picker: year, then race within that year.
+  const current = index.find((s) => s.file === selected)
+  const years = [...new Set(index.map((s) => s.year))].sort((a, b) => b - a)
+  const racesForYear = index
+    .filter((s) => s.year === current?.year)
+    .sort((a, b) => a.gp.localeCompare(b.gp))
+  const pickYear = (year) => {
+    const first = index
+      .filter((s) => s.year === Number(year))
+      .sort((a, b) => a.gp.localeCompare(b.gp))[0]
+    if (first) setSelected(first.file)
+  }
+
   return (
     <>
       <div className="hero rise">
@@ -53,11 +66,20 @@ export default function App() {
             <div className="session-meta">
               <select
                 className="select"
+                value={current?.year ?? ''}
+                onChange={(e) => pickYear(e.target.value)}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>{' '}
+              <select
+                className="select"
                 value={selected || ''}
                 onChange={(e) => setSelected(e.target.value)}
               >
-                {index.map((s) => (
-                  <option key={s.file} value={s.file}>{s.gp} {s.year}</option>
+                {racesForYear.map((s) => (
+                  <option key={s.file} value={s.file}>{s.gp}</option>
                 ))}
               </select>{' '}
               · {session.meta.session} · POLE{' '}
