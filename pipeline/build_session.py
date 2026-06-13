@@ -9,7 +9,12 @@ from pathlib import Path
 from ghostline.delta import cumulative_delta
 from ghostline.dynamics import compute_dynamics
 from ghostline.export import export_session
-from ghostline.features import compute_minisectors, compute_sectors
+from ghostline.features import (
+    classify_corner_shapes,
+    compute_minisectors,
+    compute_sectors,
+    compute_style,
+)
 from ghostline.load import get_fastest_laps, load_quali_session
 from ghostline.resample import resample_lap
 
@@ -81,6 +86,19 @@ def main():
     print(f"mini-sectors: {n_apexes} apexes, "
           f"{len(minisectors['winners'])} segments")
 
+    corner_distances = [c["distance"] for c in corners]
+    style = None
+    if len(corner_distances) >= 2:
+        shapes = classify_corner_shapes(
+            drivers[pole_code]["channels"], corner_distances)
+        for corner, shape in zip(corners, shapes):
+            corner["shape"] = shape
+        style = compute_style(drivers, corner_distances)
+        if style is not None:
+            n_clusters = len({d["cluster"] for d in style["drivers"].values()})
+            print(f"style: {len(style['drivers'])} drivers, "
+                  f"{n_clusters} clusters")
+
     meta = {
         "year": args.year,
         "gp": args.gp,
@@ -91,6 +109,7 @@ def main():
         "corners": corners,
         "sectors": compute_sectors(laps[pole_code], pole_grid),
         "minisectors": minisectors,
+        "style": style,
         "caveats": [
             "Longitudinal g is approximate: derived by differentiating speed.",
             "Position data is ~4-5 Hz interpolated; curvature and lateral g "

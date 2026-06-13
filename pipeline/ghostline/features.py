@@ -9,6 +9,9 @@ time difference relative to pole.
 
 import numpy as np
 from scipy.signal import find_peaks
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 STEP_M = 5.0
 
@@ -109,3 +112,152 @@ def compute_minisectors(drivers, pole_code, track_length, curvature,
         "composite_ideal": round(float(composite_ideal), 3),
     }
     return result, len(apexes)
+
+
+# --- Driving-style fingerprints -------------------------------------------
+
+# Per-driver corner features fed into the style fingerprint. Order matters:
+# it is the column order of the feature matrix and the radar axes.
+FEATURE_NAMES = ["apex_speed", "brake_point", "throttle_app",
+                 "exit_speed", "trail_brake"]
+
+
+def _corner_windows(corner_distances, n_grid):
+    """Index windows [i0, i1] per corner on the 5m grid. Each corner owns the
+    stretch from the midpoint to the previous corner up to the midpoint to the
+    next one (matches the pairwise corner table)."""
+    bounds = [0.0]
+    for a, b in zip(corner_distances[:-1], corner_distances[1:]):
+        bounds.append((a + b) / 2.0)
+    bounds.append((n_grid - 1) * STEP_M)
+
+    def idx(d):
+        return max(0, min(n_grid - 1, int(round(d / STEP_M))))
+
+    return [(idx(bounds[i]), idx(bounds[i + 1]))
+            for i in range(len(corner_distances))]
+
+
+def _corner_features(channels, i0, i1):
+    """Five style features for one driver in one corner window, or None if the
+    window is degenerate. Distances are relative to the apex so they describe
+    driving style, not where the corner sits on track."""
+    speed = channels["speed"]
+    throttle = channels["throttle"]
+    brake = channels["brake"]
+    lat_g = channels["lat_g"]
+    dist = channels["distance"]
+
+    n = len(speed)
+    i0 = min(i0, n - 1)
+    i1 = min(i1, n - 1)
+    if i1 <= i0:
+        return None
+
+    apex = i0 + int(np.argmin(speed[i0:i1 + 1]))
+    apex_speed = float(speed[apex])
+    apex_dist = float(dist[apex])
+
+    # Braking point: how far before the apex the driver first hits the brake.
+    brake_point = 0.0
+    for k in range(i0, apex + 1):
+        if brake[k]:
+            brake_point = apex_dist - float(dist[k])
+            break
+
+    # Throttle application: how far after the apex throttle returns to ~full.
+    throttle_app = float(dist[i1]) - apex_dist
+    for k in range(apex, i1 + 1):
+        if throttle[k] >= 80:
+            throttle_app = float(dist[k]) - apex_dist
+            break
+
+    exit_speed = float(speed[i1])
+
+    # Trail braking: metres on the approach spent braking while already
+    # loaded up laterally (|lat_g| > 1.5 g).
+    trail_brake = 0.0
+    for k in range(i0, apex + 1):
+        if brake[k] and abs(lat_g[k]) > 1.5:
+            trail_brake += STEP_M
+
+    return [apex_speed, brake_point, throttle_app, exit_speed, trail_brake]
+
+
+def compute_style(drivers, corner_distances, n_clusters=4):
+    """PCA + KMeans driving-style fingerprint over the full field.
+
+    Returns {"feature_names": [...], "drivers": {CODE: {"pc": [x, y],
+    "cluster": int, "radar": {name: raw_value}}}}, or None if there are not
+    enough corners/drivers to fit.
+    """
+    codes = list(drivers)
+    if len(corner_distances) < 2 or len(codes) < 3:
+        return None
+
+    vectors = {}
+    for code in codes:
+        channels = drivers[code]["channels"]
+        windows = _corner_windows(corner_distances, len(channels["speed"]))
+        feats = [f for f in (_corner_features(channels, i0, i1)
+                             for i0, i1 in windows) if f is not None]
+        if not feats:
+            return None
+        vectors[code] = np.mean(np.array(feats), axis=0)
+
+    matrix = np.array([vectors[c] for c in codes])
+    scaled = StandardScaler().fit_transform(matrix)
+    pcs = PCA(n_components=2, random_state=0).fit_transform(scaled)
+    k = max(2, min(n_clusters, len(codes)))
+    labels = KMeans(n_clusters=k, n_init=10,
+                    random_state=0).fit_predict(scaled)
+
+    return {
+        "feature_names": FEATURE_NAMES,
+        "drivers": {
+            code: {
+                "pc": [round(float(pcs[i][0]), 3),
+                       round(float(pcs[i][1]), 3)],
+                "cluster": int(labels[i]),
+                "radar": {name: round(float(vectors[code][j]), 2)
+                          for j, name in enumerate(FEATURE_NAMES)},
+            }
+            for i, code in enumerate(codes)
+        },
+    }
+
+
+def classify_corner_shapes(pole_channels, corner_distances, u_flatness=0.58):
+    """Tag each corner "V" (pointed, quick apex) or "U" (sustained low-speed
+    minimum) from the pole lap's speed-profile shape.
+
+    For each corner window we isolate the dip region around the apex (speed
+    within the lower half of the corner's speed drop) and measure how flat its
+    floor is: flatness = 1 - mean(speed - v_min) / (0.5 * depth). A triangular
+    V apex scores ~0.5; a sustained U floor approaches 1. The ratio is
+    scale-free, so a slow hairpin and a fast sweeper are judged the same way.
+    Returns a list aligned to corner_distances.
+    """
+    speed = pole_channels["speed"]
+    n = len(speed)
+    shapes = []
+    for i0, i1 in _corner_windows(corner_distances, n):
+        i1 = min(i1, n - 1)
+        seg = speed[i0:i1 + 1]
+        apex = i0 + int(np.argmin(seg))
+        v_min = float(speed[apex])
+        depth = float(np.max(seg)) - v_min
+        if depth <= 0:
+            shapes.append("V")
+            continue
+        half = v_min + 0.5 * depth
+        lo = apex
+        while lo > i0 and speed[lo - 1] <= half:
+            lo -= 1
+        hi = apex
+        while hi < i1 and speed[hi + 1] <= half:
+            hi += 1
+        floor = np.asarray(speed[lo:hi + 1], dtype=float)
+        flatness = 1.0 - (floor.mean() - v_min) / (0.5 * depth)
+        shapes.append("U" if flatness >= u_flatness else "V")
+    return shapes

@@ -175,7 +175,7 @@ export default function Pairwise({ session }) {
         if (at(B.speed, k) < minB) minB = at(B.speed, k)
       }
       const gained = data[i1].delta - data[i0].delta
-      return { label: `T${c.number}${c.letter}`, minA, minB, gained: +gained.toFixed(3) }
+      return { label: `T${c.number}${c.letter}`, shape: c.shape ?? '', minA, minB, gained: +gained.toFixed(3) }
     })
   }, [session, codeA, codeB, data])
 
@@ -276,6 +276,7 @@ export default function Pairwise({ session }) {
               <thead>
                 <tr>
                   <th>Corner</th>
+                  <th>Shape</th>
                   <th>{codeA} min km/h</th>
                   <th>{codeB} min km/h</th>
                   <th>Δt for {codeA} (s)</th>
@@ -285,6 +286,7 @@ export default function Pairwise({ session }) {
                 {cornerRows.map((r) => (
                   <tr key={r.label}>
                     <td>{r.label}</td>
+                    <td className="muted">{r.shape}</td>
                     <td>{r.minA}</td>
                     <td>{r.minB}</td>
                     <td className={r.gained > 0.005 ? 'gain' : r.gained < -0.005 ? 'loss' : 'muted'}>
