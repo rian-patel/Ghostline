@@ -11,10 +11,12 @@ from scipy.signal import savgol_filter
 G = 9.81
 KMH_TO_MS = 1.0 / 3.6
 
-# Physical g ceilings. An F1 car tops out near 6 g lateral and brakes around
-# 5-6 g; anything beyond is a position-jitter artifact, not real load.
-LAT_G_MAX = 6.0
-LONG_G_MAX = 6.0
+# Physical g ceilings, with headroom. Sustained lateral load peaks ~5-6 g and
+# braking ~5-6 g, with brief peaks a little higher; we cap at 7 g so genuine
+# peaks survive while the position-jitter spikes (tens of g on the straights)
+# are removed.
+LAT_G_MAX = 7.0
+LONG_G_MAX = 7.0
 
 
 def _odd_window(window, polyorder, length):

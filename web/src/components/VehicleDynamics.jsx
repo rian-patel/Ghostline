@@ -146,7 +146,7 @@ export default function VehicleDynamics({ session }) {
             <XAxis
               dataKey="x"
               type="number"
-              domain={[-6, 6]}
+              domain={[-7, 7]}
               ticks={G_TICKS}
               tick={axisTick}
               stroke={CHART.axis}
@@ -155,7 +155,7 @@ export default function VehicleDynamics({ session }) {
             <YAxis
               dataKey="y"
               type="number"
-              domain={[-6, 6]}
+              domain={[-7, 7]}
               ticks={G_TICKS}
               tick={axisTick}
               width={40}
