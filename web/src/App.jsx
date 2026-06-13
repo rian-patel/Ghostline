@@ -5,6 +5,7 @@ import Pairwise from './components/Pairwise.jsx'
 import VehicleDynamics from './components/VehicleDynamics.jsx'
 import MiniSectors from './components/MiniSectors.jsx'
 import DrivingStyle from './components/DrivingStyle.jsx'
+import Debrief from './components/Debrief.jsx'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
@@ -12,6 +13,7 @@ const VIEWS = [
   { id: 'dynamics', label: 'Dynamics' },
   { id: 'sectors', label: 'Mini-sectors' },
   { id: 'style', label: 'Style' },
+  { id: 'debrief', label: 'Debrief' },
 ]
 
 export default function App() {
@@ -61,6 +63,7 @@ export default function App() {
             {view === 'dynamics' && <VehicleDynamics session={session} />}
             {view === 'sectors' && <MiniSectors session={session} />}
             {view === 'style' && <DrivingStyle session={session} />}
+            {view === 'debrief' && <Debrief session={session} />}
           </div>
         </main>
       </div>
