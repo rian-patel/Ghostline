@@ -53,10 +53,12 @@ export default function App() {
         ))}
         </nav>
         <main className="rise rise-2">
-          {view === 'replay' && <TrackMap session={session} />}
-          {view === 'pairwise' && <Pairwise session={session} />}
-          {view === 'dynamics' && <VehicleDynamics session={session} />}
-          {view === 'sectors' && <MiniSectors session={session} />}
+          <div key={view} className="view-fade">
+            {view === 'replay' && <TrackMap session={session} />}
+            {view === 'pairwise' && <Pairwise session={session} />}
+            {view === 'dynamics' && <VehicleDynamics session={session} />}
+            {view === 'sectors' && <MiniSectors session={session} />}
+          </div>
         </main>
       </div>
     </>
