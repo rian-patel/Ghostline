@@ -5,3 +5,8 @@ pipeline/cache/
 pipeline/venv/
 .env
 .vercel
+
+# Local dev files — kept on disk, out of the public repo
+CLAUDE.md
+docs/
+.claude/
