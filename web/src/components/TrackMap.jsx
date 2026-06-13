@@ -198,7 +198,11 @@ export default function TrackMap({ session }) {
     const drawCar = (d, dim) => {
       const p = sampleAtTime(d.channels, timeRef.current)
       const sel = d.code === selectedRef.current
-      ctx.globalAlpha = dim ? 0.25 : 1
+      ctx.globalAlpha = dim ? 0.22 : 1
+      if (sel) {
+        ctx.shadowColor = 'rgba(255, 59, 48, 0.75)'
+        ctx.shadowBlur = 14
+      }
       ctx.beginPath()
       ctx.arc(t.toX(p.x), t.toY(p.y), sel ? 8 : 5, 0, Math.PI * 2)
       if (d.hollow) {
@@ -216,6 +220,7 @@ export default function TrackMap({ session }) {
         ctx.arc(t.toX(p.x), t.toY(p.y), 11, 0, Math.PI * 2)
         ctx.stroke()
       }
+      ctx.shadowBlur = 0
     }
 
     let raf
@@ -241,12 +246,12 @@ export default function TrackMap({ session }) {
       ctx.strokeStyle = '#2b3038'
       ctx.lineWidth = 6
       ctx.stroke(trackPath)
-      ctx.strokeStyle = '#cbd0d8'
+      ctx.strokeStyle = '#aab2bd'
       ctx.lineWidth = 2
       ctx.stroke(trackPath)
 
       // neutral lines separating the sectors
-      ctx.strokeStyle = '#eef0f2'
+      ctx.strokeStyle = '#6f7783'
       ctx.lineWidth = 2
       dividers.forEach((g) => {
         ctx.beginPath()
@@ -376,6 +381,7 @@ export default function TrackMap({ session }) {
             step={0.05}
             value={displayTime}
             onChange={onScrub}
+            style={{ '--pct': maxTime ? displayTime / maxTime : 0 }}
           />
           <span className="mono muted" style={{ fontSize: 13, minWidth: 150, textAlign: 'right' }}>
             {formatLapTime(displayTime)} / {formatLapTime(maxTime)}
