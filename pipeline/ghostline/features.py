@@ -48,6 +48,27 @@ def _segment_boundaries(apex_distances, track_length, max_segment_m):
     return snapped
 
 
+def compute_sectors(pole_lap, pole_grid):
+    """Sector boundary distances (m) for the pole lap.
+
+    Derived from the lap's official Sector1/Sector2 durations mapped through
+    the grid's cumulative time->distance relation. Returns [s1_end, s2_end]
+    (two boundaries => three sectors), or [] if sector times are unavailable.
+    """
+    try:
+        s1 = float(pole_lap["Sector1Time"].total_seconds())
+        s2 = float(pole_lap["Sector2Time"].total_seconds())
+    except (KeyError, AttributeError, TypeError):
+        return []
+    if not (np.isfinite(s1) and np.isfinite(s2)):
+        return []
+    time = pole_grid["time"]
+    dist = pole_grid["distance"]
+    d1 = float(np.interp(s1, time, dist))
+    d2 = float(np.interp(s1 + s2, time, dist))
+    return [round(d1, 1), round(d2, 1)]
+
+
 def compute_minisectors(drivers, pole_code, track_length, curvature,
                         min_curvature, min_spacing_m, max_segment_m):
     """Mini-sector dominance over the full field.

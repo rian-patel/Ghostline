@@ -40,24 +40,17 @@ body {
 .hero {
   border-bottom: 1px solid var(--border);
   background:
-    linear-gradient(90deg, var(--bg) 4%, rgba(11, 13, 16, 0.86) 46%, rgba(11, 13, 16, 0.38) 100%),
+    linear-gradient(90deg, var(--bg) 2%, rgba(11, 13, 16, 0.82) 44%, rgba(11, 13, 16, 0.3) 100%),
     var(--bg) url('/brand/hero.jpg') right center / cover no-repeat;
 }
 .hero-inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 52px 24px 40px;
-}
-.brand {
+  min-height: 150px;
   display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.brand-mark {
-  width: 48px;
-  height: 48px;
-  display: block;
-  filter: drop-shadow(0 0 10px rgba(255, 59, 48, 0.35));
+  flex-direction: column;
+  justify-content: center;
+  padding: 38px 24px;
 }
 
 /* staggered page-load reveal */
@@ -81,7 +74,7 @@ body {
 .masthead::after {
   content: '';
   position: absolute;
-  left: 62px;
+  left: 2px;
   bottom: -14px;
   width: 76px;
   height: 2px;
@@ -261,9 +254,27 @@ canvas.board {
 .tower-row--dim { opacity: 0.45; }
 .tower-pos { width: 20px; text-align: right; color: var(--muted); }
 .tower-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.tower-code { width: 38px; }
-.tower-gap { margin-left: auto; }
+.tower-code { width: 36px; }
+.tower-gap { width: 62px; text-align: right; }
 .tower-gap--best { color: var(--best); }
+.tower-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.tower-sec {
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.tower-sec--pending { color: #4a505a; }
 
 /* corner table */
 .corner-table {

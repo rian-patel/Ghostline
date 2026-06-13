@@ -4,6 +4,8 @@ const WIDTH = 800
 const HEIGHT = 500
 const PADDING = 24
 const SPEEDS = [0.25, 0.5, 1, 2]
+// Muted sector hues, distinct from the team-colored car dots.
+const SECTOR_COLORS = ['#3f6c9e', '#9e7a3f', '#7a4f9e']
 
 export function formatLapTime(seconds) {
   // Round to ms first so e.g. 59.9999 carries into the minute (1:00.000,
@@ -81,6 +83,8 @@ export default function TrackMap({ session }) {
   speedRef.current = speed
   selectedRef.current = selected
 
+  const sectorsDist = session.meta.sectors ?? []
+
   // JSON driver order is the official classification, so drivers[0] is pole.
   // Dots use team colors; the second car of a team is drawn hollow.
   const drivers = useMemo(() => {
@@ -103,6 +107,28 @@ export default function TrackMap({ session }) {
     [drivers],
   )
 
+  // Per-driver sector splits + the absolute lap time at which each car
+  // crosses each sector boundary (so the tower can reveal splits live).
+  const sectorInfo = useMemo(() => {
+    if (sectorsDist.length !== 2) return null
+    const per = {}
+    const best = [Infinity, Infinity, Infinity]
+    for (const d of drivers) {
+      const time = d.channels.time
+      const last = time.length - 1
+      const tAt = (dist) => time[Math.min(Math.round(dist / 5), last)]
+      const e1 = tAt(sectorsDist[0])
+      const e2 = tAt(sectorsDist[1])
+      const e3 = time[last]
+      const splits = [e1 - time[0], e2 - e1, e3 - e2]
+      per[d.code] = { ends: [e1, e2, e3], splits }
+      splits.forEach((v, k) => {
+        if (v < best[k]) best[k] = v
+      })
+    }
+    return { per, best, pole: per[drivers[0].code].splits }
+  }, [drivers, sectorsDist])
+
   // Animation: per-frame drawing is imperative on the canvas; React state
   // (playing/speed/selected) is read through refs so the loop is created once.
   useEffect(() => {
@@ -116,15 +142,51 @@ export default function TrackMap({ session }) {
     const pole = drivers[0].channels
     const t = fitTransform(pole.x, pole.y, WIDTH, HEIGHT, PADDING)
     transformRef.current = t
+    const n = pole.x.length
+    const idxAt = (d) => Math.max(0, Math.min(Math.round(d / 5), n - 1))
 
-    const trackPath = new Path2D()
-    for (let i = 0; i < pole.x.length; i++) {
-      const px = t.toX(pole.x[i])
-      const py = t.toY(pole.y[i])
-      if (i === 0) trackPath.moveTo(px, py)
-      else trackPath.lineTo(px, py)
+    // Split the closed track outline into colored sector arcs.
+    const bounds =
+      sectorsDist.length === 2
+        ? [0, idxAt(sectorsDist[0]), idxAt(sectorsDist[1]), n - 1]
+        : [0, n - 1]
+    const sectorPaths = []
+    for (let s = 0; s < bounds.length - 1; s++) {
+      const p = new Path2D()
+      for (let i = bounds[s]; i <= bounds[s + 1]; i++) {
+        const px = t.toX(pole.x[i])
+        const py = t.toY(pole.y[i])
+        if (i === bounds[s]) p.moveTo(px, py)
+        else p.lineTo(px, py)
+      }
+      sectorPaths.push(p)
     }
-    trackPath.closePath()
+
+    // A perpendicular tick across the track at grid index i.
+    const tickAt = (i, halfLen) => {
+      const a = Math.max(0, i - 1)
+      const b = Math.min(n - 1, i + 1)
+      const cx = t.toX(pole.x[i])
+      const cy = t.toY(pole.y[i])
+      let hx = t.toX(pole.x[b]) - t.toX(pole.x[a])
+      let hy = t.toY(pole.y[b]) - t.toY(pole.y[a])
+      const hl = Math.hypot(hx, hy) || 1
+      const px = -hy / hl
+      const py = hx / hl
+      return {
+        cx,
+        cy,
+        x1: cx + px * halfLen,
+        y1: cy + py * halfLen,
+        x2: cx - px * halfLen,
+        y2: cy - py * halfLen,
+      }
+    }
+    const sfTick = tickAt(0, 13)
+    const boundaryTicks =
+      sectorsDist.length === 2
+        ? [tickAt(idxAt(sectorsDist[0]), 9), tickAt(idxAt(sectorsDist[1]), 9)]
+        : []
 
     const drawCar = (d, dim) => {
       const p = sampleAtTime(d.channels, timeRef.current)
@@ -167,9 +229,31 @@ export default function TrackMap({ session }) {
 
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
       ctx.globalAlpha = 1
-      ctx.strokeStyle = '#39404a'
+      ctx.lineWidth = 3
+      ctx.lineJoin = 'round'
+      sectorPaths.forEach((p, s) => {
+        ctx.strokeStyle = sectorsDist.length === 2 ? SECTOR_COLORS[s] : '#39404a'
+        ctx.stroke(p)
+      })
+
+      // Sector boundary ticks, then the brighter start/finish line.
       ctx.lineWidth = 2
-      ctx.stroke(trackPath)
+      boundaryTicks.forEach((tk, k) => {
+        ctx.strokeStyle = SECTOR_COLORS[k + 1]
+        ctx.beginPath()
+        ctx.moveTo(tk.x1, tk.y1)
+        ctx.lineTo(tk.x2, tk.y2)
+        ctx.stroke()
+      })
+      ctx.strokeStyle = '#f3f4f6'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(sfTick.x1, sfTick.y1)
+      ctx.lineTo(sfTick.x2, sfTick.y2)
+      ctx.stroke()
+      ctx.fillStyle = '#f3f4f6'
+      ctx.font = '600 11px IBM Plex Mono, monospace'
+      ctx.fillText('S/F', sfTick.cx + 8, sfTick.cy - 8)
 
       const sel = selectedRef.current
       for (const d of drivers) {
@@ -185,7 +269,7 @@ export default function TrackMap({ session }) {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [drivers, maxTime])
+  }, [drivers, maxTime, sectorsDist])
 
   const toggleSelect = (code) =>
     setSelected((prev) => (prev === code ? null : code))
@@ -223,6 +307,13 @@ export default function TrackMap({ session }) {
     const v = Number(e.target.value)
     timeRef.current = v
     setDisplayTime(v)
+  }
+
+  // Sector cell color: purple = field best, green = at/under pole, red = slower.
+  const secColor = (val, k) => {
+    if (Math.abs(val - sectorInfo.best[k]) < 1e-6) return 'var(--best)'
+    if (val <= sectorInfo.pole[k] + 1e-9) return 'var(--gain)'
+    return 'var(--loss)'
   }
 
   const tower = drivers
@@ -270,8 +361,21 @@ export default function TrackMap({ session }) {
           ))}
         </div>
       </div>
-      <div className="panel" style={{ minWidth: 230, flex: 1 }}>
+      <div className="panel" style={{ minWidth: sectorInfo ? 340 : 230, flex: 1 }}>
         <h2 className="panel-label">Gap to pole / live</h2>
+        {sectorInfo && (
+          <div className="tower-head">
+            <span style={{ width: 20 }} />
+            <span style={{ width: 9 }} />
+            <span style={{ width: 36 }} />
+            <span className="tower-gap">GAP</span>
+            {['S1', 'S2', 'S3'].map((s, k) => (
+              <span key={s} className="tower-sec" style={{ color: SECTOR_COLORS[k] }}>
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
         {tower.map((d, i) => {
           const cls = [
             'tower-row',
@@ -280,6 +384,7 @@ export default function TrackMap({ session }) {
           ]
             .filter(Boolean)
             .join(' ')
+          const info = sectorInfo?.per[d.code]
           return (
             <div key={d.code} onClick={() => toggleSelect(d.code)} className={cls}>
               <span className="tower-pos">{i + 1}</span>
@@ -295,6 +400,19 @@ export default function TrackMap({ session }) {
               <span className={`tower-gap${i === 0 ? ' tower-gap--best' : ''}`}>
                 {d.gap > 0 ? `+${d.gap.toFixed(3)}` : d.gap.toFixed(3)}
               </span>
+              {info &&
+                [0, 1, 2].map((k) => {
+                  const done = displayTime >= info.ends[k]
+                  return done ? (
+                    <span key={k} className="tower-sec" style={{ color: secColor(info.splits[k], k) }}>
+                      {info.splits[k].toFixed(3)}
+                    </span>
+                  ) : (
+                    <span key={k} className="tower-sec tower-sec--pending">
+                      —
+                    </span>
+                  )
+                })}
             </div>
           )
         })}

@@ -29,12 +29,9 @@ export default function App() {
       <div className="hero rise">
         <div className="hero-inner">
           <header className="masthead">
-            <div className="brand">
-              <img src="/brand/mark.svg" alt="Ghostline" className="brand-mark" />
-              <h1 className="wordmark" data-text="GHOSTLINE">
-                GHOST<span className="line">LINE</span>
-              </h1>
-            </div>
+            <h1 className="wordmark" data-text="GHOSTLINE">
+              GHOST<span className="line">LINE</span>
+            </h1>
             <div className="session-meta">
               {session.meta.gp} {session.meta.year} · {session.meta.session} · POLE{' '}
               <b>{session.meta.pole_driver}</b>{' '}

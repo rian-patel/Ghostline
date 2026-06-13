@@ -9,7 +9,7 @@ from pathlib import Path
 from ghostline.delta import cumulative_delta
 from ghostline.dynamics import compute_dynamics
 from ghostline.export import export_session
-from ghostline.features import compute_minisectors
+from ghostline.features import compute_minisectors, compute_sectors
 from ghostline.load import get_fastest_laps, load_quali_session
 from ghostline.resample import resample_lap
 
@@ -89,6 +89,7 @@ def main():
         "pole_driver": pole_code,
         "pole_time": drivers[pole_code]["lap_time"],
         "corners": corners,
+        "sectors": compute_sectors(laps[pole_code], pole_grid),
         "minisectors": minisectors,
         "caveats": [
             "Longitudinal g is approximate: derived by differentiating speed.",
