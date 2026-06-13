@@ -55,8 +55,9 @@ export default function MiniSectors({ session }) {
     const idx = (d) => Math.min(Math.round(d / 5), pole.x.length - 1)
 
     ctx.clearRect(0, 0, WIDTH, HEIGHT)
-    ctx.lineWidth = 4
+    ctx.lineWidth = 5
     ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
     ms.winners.forEach((w, k) => {
       const i0 = idx(ms.boundaries[k])
       const i1 = idx(ms.boundaries[k + 1])
@@ -100,12 +101,8 @@ export default function MiniSectors({ session }) {
         />
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
           {winCounts.map(([code, n]) => (
-            <span
-              key={code}
-              className="mono"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-            >
-              <span style={{ width: 11, height: 11, borderRadius: 2, background: colors[code] }} />
+            <span key={code} className="legend-chip">
+              <span className="legend-swatch" style={{ background: colors[code] }} />
               {code} <span className="muted">×{n}</span>
             </span>
           ))}
@@ -113,7 +110,16 @@ export default function MiniSectors({ session }) {
       </div>
       <div className="panel" style={{ minWidth: 250, flex: 1 }}>
         <h2 className="panel-label">Composite ideal lap</h2>
-        <div className="mono" style={{ fontSize: 26, color: 'var(--gain)' }}>
+        <div
+          className="mono"
+          style={{
+            fontSize: 34,
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+            color: 'var(--gain)',
+            textShadow: '0 0 18px rgba(74, 222, 128, 0.35)',
+          }}
+        >
           {formatLapTime(ms.composite_ideal)}
         </div>
         <div className="mono muted" style={{ fontSize: 13, marginTop: 6 }}>
