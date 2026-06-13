@@ -21,12 +21,12 @@ export default function App() {
   const [error, setError] = useState(null)
   const [view, setView] = useState('replay')
 
-  // Load the session index once and pick a default (Bahrain if present).
+  // Load the session index once and pick a default (2026 Australian if present).
   useEffect(() => {
     loadIndex()
       .then((list) => {
         setIndex(list)
-        const def = list.find((s) => s.file === '2024_bahrain_Q') || list[0]
+        const def = list.find((s) => s.file === '2026_australian_Q') || list[0]
         if (def) setSelected(def.file)
         else setError('No sessions found')
       })
