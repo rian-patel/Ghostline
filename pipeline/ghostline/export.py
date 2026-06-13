@@ -37,3 +37,32 @@ def export_session(meta, drivers, out_path):
     with open(out_path, "w") as f:
         json.dump(payload, f, separators=(",", ":"))
     return out_path
+
+
+def write_index(out_dir):
+    """Scan out_dir for session JSONs and (re)write index.json listing each
+    with the metadata the frontend picker needs. Returns the index Path."""
+    out_dir = Path(out_dir)
+    entries = []
+    for path in sorted(out_dir.glob("*.json")):
+        if path.name == "index.json":
+            continue
+        try:
+            with open(path) as f:
+                meta = json.load(f)["meta"]
+        except (json.JSONDecodeError, KeyError, OSError):
+            continue
+        entries.append({
+            "file": path.stem,
+            "year": meta["year"],
+            "gp": meta["gp"],
+            "session": meta["session"],
+            "pole_driver": meta["pole_driver"],
+            "pole_time": meta["pole_time"],
+        })
+    # Newest year first, then alphabetical by GP.
+    entries.sort(key=lambda e: (-e["year"], e["gp"]))
+    index_path = out_dir / "index.json"
+    with open(index_path, "w") as f:
+        json.dump(entries, f, separators=(",", ":"))
+    return index_path

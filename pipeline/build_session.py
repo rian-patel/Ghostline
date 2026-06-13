@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ghostline.delta import cumulative_delta
 from ghostline.dynamics import compute_dynamics
-from ghostline.export import export_session
+from ghostline.export import export_session, write_index
 from ghostline.features import (
     classify_corner_shapes,
     compute_minisectors,
@@ -120,6 +120,9 @@ def main():
     out_file = Path(args.out) / f"{args.year}_{slug}_{args.session}.json"
     path = export_session(meta, drivers, out_file)
     print(f"wrote {path} ({path.stat().st_size / 1024:.0f} KB)")
+
+    index_path = write_index(args.out)
+    print(f"index: {index_path}")
 
 
 if __name__ == "__main__":

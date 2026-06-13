@@ -3,3 +3,9 @@ export async function loadSession(name = '2024_bahrain_Q') {
   if (!res.ok) throw new Error(`Failed to load session ${name}: HTTP ${res.status}`)
   return res.json()
 }
+
+export async function loadIndex() {
+  const res = await fetch('/sessions/index.json')
+  if (!res.ok) throw new Error(`Failed to load session index: HTTP ${res.status}`)
+  return res.json()
+}

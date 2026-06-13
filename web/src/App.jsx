@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { loadSession } from './lib/loadSession.js'
+import { loadSession, loadIndex } from './lib/loadSession.js'
 import TrackMap, { formatLapTime } from './components/TrackMap.jsx'
 import Pairwise from './components/Pairwise.jsx'
 import VehicleDynamics from './components/VehicleDynamics.jsx'
@@ -15,13 +15,29 @@ const VIEWS = [
 ]
 
 export default function App() {
+  const [index, setIndex] = useState([])
+  const [selected, setSelected] = useState(null)
   const [session, setSession] = useState(null)
   const [error, setError] = useState(null)
   const [view, setView] = useState('replay')
 
+  // Load the session index once and pick a default (Bahrain if present).
   useEffect(() => {
-    loadSession().then(setSession).catch((e) => setError(e.message))
+    loadIndex()
+      .then((list) => {
+        setIndex(list)
+        const def = list.find((s) => s.file === '2024_bahrain_Q') || list[0]
+        if (def) setSelected(def.file)
+        else setError('No sessions found')
+      })
+      .catch((e) => setError(e.message))
   }, [])
+
+  // Load whichever session is selected.
+  useEffect(() => {
+    if (!selected) return
+    loadSession(selected).then(setSession).catch((e) => setError(e.message))
+  }, [selected])
 
   if (error) return <p className="status-note status-note--error">Could not load session: {error}</p>
   if (!session) return <p className="status-note">Loading session…</p>
@@ -35,7 +51,16 @@ export default function App() {
               GHOST<span className="line">LINE</span>
             </h1>
             <div className="session-meta">
-              {session.meta.gp} {session.meta.year} · {session.meta.session} · POLE{' '}
+              <select
+                className="select"
+                value={selected || ''}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                {index.map((s) => (
+                  <option key={s.file} value={s.file}>{s.gp} {s.year}</option>
+                ))}
+              </select>{' '}
+              · {session.meta.session} · POLE{' '}
               <b>{session.meta.pole_driver}</b>{' '}
               <span className="best">{formatLapTime(session.meta.pole_time)}</span>
             </div>
@@ -55,7 +80,7 @@ export default function App() {
         ))}
         </nav>
         <main className="rise rise-2">
-          <div key={view} className="view-fade">
+          <div key={`${session.meta.year}_${session.meta.gp}_${view}`} className="view-fade">
             {view === 'replay' && <TrackMap session={session} />}
             {view === 'pairwise' && <Pairwise session={session} />}
             {view === 'dynamics' && <VehicleDynamics session={session} />}
