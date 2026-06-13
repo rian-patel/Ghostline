@@ -179,8 +179,8 @@ export default function DrivingStyle({ session }) {
           <div style={{ position: 'relative', width: 480, height: 440, maxWidth: '100%' }}>
             {quadrant({ top: 12, left: 54 }, 'Smooth', 'early brake · high speed')}
             {quadrant({ top: 12, right: 14, textAlign: 'right' }, 'Committed', 'late brake · high speed')}
-            {quadrant({ bottom: 48, left: 54 }, 'Conservative', 'early brake · low speed')}
-            {quadrant({ bottom: 48, right: 14, textAlign: 'right' }, 'Point & shoot', 'late brake · low speed')}
+            {quadrant({ bottom: 66, left: 54 }, 'Conservative', 'early brake · low speed')}
+            {quadrant({ bottom: 66, right: 14, textAlign: 'right' }, 'Point & shoot', 'late brake · low speed')}
             <ScatterChart width={480} height={440} margin={{ top: 16, right: 24, bottom: 30, left: 8 }}>
               <XAxis
                 dataKey="x"
