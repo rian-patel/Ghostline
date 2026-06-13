@@ -3,11 +3,13 @@ import { loadSession } from './lib/loadSession.js'
 import TrackMap, { formatLapTime } from './components/TrackMap.jsx'
 import Pairwise from './components/Pairwise.jsx'
 import VehicleDynamics from './components/VehicleDynamics.jsx'
+import MiniSectors from './components/MiniSectors.jsx'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
   { id: 'pairwise', label: 'Pairwise' },
   { id: 'dynamics', label: 'Dynamics' },
+  { id: 'sectors', label: 'Mini-sectors' },
 ]
 
 export default function App() {
@@ -57,6 +59,7 @@ export default function App() {
           {view === 'replay' && <TrackMap session={session} />}
           {view === 'pairwise' && <Pairwise session={session} />}
           {view === 'dynamics' && <VehicleDynamics session={session} />}
+          {view === 'sectors' && <MiniSectors session={session} />}
         </main>
       </div>
     </>

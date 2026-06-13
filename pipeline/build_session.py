@@ -9,6 +9,7 @@ from pathlib import Path
 from ghostline.delta import cumulative_delta
 from ghostline.dynamics import compute_dynamics
 from ghostline.export import export_session
+from ghostline.features import compute_minisectors
 from ghostline.load import get_fastest_laps, load_quali_session
 from ghostline.resample import resample_lap
 
@@ -22,6 +23,12 @@ def main():
     parser.add_argument("--session", default="Q")
     parser.add_argument("--out",
                         default=str(REPO_ROOT / "web" / "public" / "sessions"))
+    parser.add_argument("--ms-min-curvature", type=float, default=0.004,
+                        help="min |curvature| (1/m) for a mini-sector apex peak")
+    parser.add_argument("--ms-min-spacing", type=float, default=100.0,
+                        help="min distance (m) between mini-sector apexes")
+    parser.add_argument("--ms-max-segment", type=float, default=200.0,
+                        help="max mini-sector length (m); longer spans split")
     args = parser.parse_args()
 
     session = load_quali_session(args.year, args.gp, args.session)
@@ -63,14 +70,26 @@ def main():
         for _, row in circuit_info.corners.iterrows()
     ] if circuit_info is not None else []
 
+    track_length = round(float(pole_grid["distance"][-1]), 1)
+    minisectors, n_apexes = compute_minisectors(
+        drivers, pole_code, track_length,
+        drivers[pole_code]["channels"]["curvature"],
+        min_curvature=args.ms_min_curvature,
+        min_spacing_m=args.ms_min_spacing,
+        max_segment_m=args.ms_max_segment,
+    )
+    print(f"mini-sectors: {n_apexes} apexes, "
+          f"{len(minisectors['winners'])} segments")
+
     meta = {
         "year": args.year,
         "gp": args.gp,
         "session": args.session,
-        "track_length": round(float(pole_grid["distance"][-1]), 1),
+        "track_length": track_length,
         "pole_driver": pole_code,
         "pole_time": drivers[pole_code]["lap_time"],
         "corners": corners,
+        "minisectors": minisectors,
         "caveats": [
             "Longitudinal g is approximate: derived by differentiating speed.",
             "Position data is ~4-5 Hz interpolated; curvature and lateral g "
