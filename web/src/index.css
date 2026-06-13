@@ -40,17 +40,17 @@ body {
 .hero {
   border-bottom: 1px solid var(--border);
   background:
-    linear-gradient(90deg, var(--bg) 2%, rgba(11, 13, 16, 0.82) 44%, rgba(11, 13, 16, 0.3) 100%),
+    linear-gradient(90deg, var(--bg) 0%, rgba(11, 13, 16, 0.8) 38%, rgba(11, 13, 16, 0.15) 72%, transparent 100%),
     var(--bg) url('/brand/hero.jpg') right center / cover no-repeat;
 }
 .hero-inner {
   max-width: 1180px;
   margin: 0 auto;
-  min-height: 150px;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 38px 24px;
+  padding: 32px 24px;
 }
 
 /* staggered page-load reveal */
