@@ -11,6 +11,11 @@ from scipy.signal import savgol_filter
 G = 9.81
 KMH_TO_MS = 1.0 / 3.6
 
+# Physical g ceilings. An F1 car tops out near 6 g lateral and brakes around
+# 5-6 g; anything beyond is a position-jitter artifact, not real load.
+LAT_G_MAX = 6.0
+LONG_G_MAX = 6.0
+
 
 def _odd_window(window, polyorder, length):
     """Largest usable odd window_length <= window that fits the series.
@@ -111,13 +116,24 @@ def compute_dynamics(lap, grid, smooth_window=11, smooth_polyorder=3):
     # polyorder), still before the final resample. Keeps it signed.
     kappa = _smooth(kappa, smooth_window, smooth_polyorder)
 
-    # --- lateral g: speed at the pos timestamps ---
+    # --- speed at the pos timestamps (needed for the curvature cap and lat_g) ---
     speed_at_pos = np.interp(pos_time, car_time, car_speed_ms)
+
+    # Robustify curvature against the speed^2 amplification. Residual ripple in
+    # twice-differentiated ~4 Hz position implies tens of g at high speed (a
+    # "10 m radius" reading on a 270 km/h straight). Cap |kappa| per point so
+    # the implied |lat_g| stays within LAT_G_MAX. The cap is 1/speed^2, so it is
+    # loose at low speed and leaves real hairpins (where high kappa is genuine)
+    # untouched, and tight at speed where any large kappa must be noise.
+    kappa_cap = LAT_G_MAX * G / np.maximum(speed_at_pos, 1.0) ** 2
+    kappa = np.clip(kappa, -kappa_cap, kappa_cap)
+
     lat_g = (speed_at_pos ** 2 * kappa) / G
 
     # --- longitudinal g on the (higher-rate) car series, smoothed after ---
     long_g_car = np.gradient(car_speed_ms, car_time) / G
     long_g_car = _smooth(long_g_car, smooth_window, smooth_polyorder)
+    long_g_car = np.clip(long_g_car, -LONG_G_MAX, LONG_G_MAX)
 
     # --- resample LAST ---
     return {
