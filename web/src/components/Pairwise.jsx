@@ -10,12 +10,13 @@ import {
   YAxis,
 } from 'recharts'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
+import { CHART, SERIES, axisTick, tooltipStyle } from '../lib/chartTheme.js'
 
-const COLOR_A = '#ff3b30'
-const COLOR_B = '#fbbf24'
-const GAIN_COLOR = '#4ade80'
-const LOSS_COLOR = '#f87171'
-const NEUTRAL_COLOR = '#3a3f46'
+const COLOR_A = SERIES.a
+const COLOR_B = SERIES.b
+const GAIN_COLOR = SERIES.gain
+const LOSS_COLOR = SERIES.loss
+const NEUTRAL_COLOR = SERIES.neutral
 // Smoothed per-5m delta slope below this is shown as neutral (delta is
 // rounded to 1ms, so tiny slopes are quantization noise).
 const SLOPE_THRESHOLD = 0.0008
@@ -28,18 +29,7 @@ const at = (arr, i) => arr[i < arr.length ? i : arr.length - 1]
 
 const teamSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
-const axisTick = { fill: '#6b7480', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }
-const tooltipStyle = {
-  contentStyle: {
-    background: '#161a21',
-    border: '1px solid #232830',
-    borderRadius: 6,
-    fontSize: 12,
-    fontFamily: 'IBM Plex Mono, monospace',
-  },
-  labelStyle: { color: '#8b939e' },
-  labelFormatter: (d) => `${Math.round(d)} m`,
-}
+const distLabel = (d) => `${Math.round(d)} m`
 
 function ChannelChart({ data, keyA, keyB, codeA, codeB, label, type = 'linear', domain }) {
   return (
@@ -47,17 +37,17 @@ function ChannelChart({ data, keyA, keyB, codeA, codeB, label, type = 'linear', 
       <div className="panel-label" style={{ marginBottom: 6 }}>{label}</div>
       <ResponsiveContainer width="100%" height={140}>
         <LineChart data={data} syncId="pairwise" margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#1d2129" strokeDasharray="3 3" />
+          <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
           <XAxis
             dataKey="d"
             type="number"
             domain={[0, 'dataMax']}
             tick={axisTick}
             tickFormatter={(v) => `${Math.round(v)}m`}
-            stroke="#232830"
+            stroke={CHART.axis}
           />
-          <YAxis tick={axisTick} width={44} domain={domain} stroke="#232830" />
-          <Tooltip {...tooltipStyle} />
+          <YAxis tick={axisTick} width={44} domain={domain} stroke={CHART.axis} />
+          <Tooltip {...tooltipStyle} labelFormatter={distLabel} />
           <Line type={type} dataKey={keyA} name={codeA} stroke={COLOR_A} dot={false} isAnimationActive={false} strokeWidth={1.5} />
           <Line type={type} dataKey={keyB} name={codeB} stroke={COLOR_B} dot={false} isAnimationActive={false} strokeWidth={1.5} />
         </LineChart>
@@ -201,6 +191,7 @@ export default function Pairwise({ session }) {
           const team = session.drivers[code].team
           return (
             <label key={role} className="mono" style={{ color, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="legend-swatch" style={{ background: color }} />
               {role}{' '}
               <select className="select" value={code} onChange={(e) => set(e.target.value)}>
                 {codes.map((c) => (
@@ -236,27 +227,27 @@ export default function Pairwise({ session }) {
         </h2>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data} syncId="pairwise" margin={{ top: 14, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke="#1d2129" strokeDasharray="3 3" />
+            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis
               dataKey="d"
               type="number"
               domain={[0, 'dataMax']}
               tick={axisTick}
               tickFormatter={(v) => `${Math.round(v)}m`}
-              stroke="#232830"
+              stroke={CHART.axis}
             />
-            <YAxis tick={axisTick} width={44} stroke="#232830" />
-            <Tooltip {...tooltipStyle} />
-            <ReferenceLine y={0} stroke="#5d6671" />
+            <YAxis tick={axisTick} width={44} stroke={CHART.axis} />
+            <Tooltip {...tooltipStyle} labelFormatter={distLabel} />
+            <ReferenceLine y={0} stroke={CHART.zero} />
             {corners.map((c) => (
               <ReferenceLine
                 key={`${c.number}${c.letter}`}
                 x={c.distance}
-                stroke="#262c35"
-                label={{ value: `T${c.number}${c.letter}`, fill: '#5d6671', fontSize: 10, position: 'top' }}
+                stroke={CHART.ref}
+                label={{ value: `T${c.number}${c.letter}`, fill: CHART.refLabel, fontSize: 10, position: 'top' }}
               />
             ))}
-            <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke="#c084fc" dot={false} isAnimationActive={false} strokeWidth={1.5} />
+            <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke={SERIES.delta} dot={false} isAnimationActive={false} strokeWidth={1.5} />
           </LineChart>
         </ResponsiveContainer>
       </div>
