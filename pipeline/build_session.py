@@ -14,7 +14,6 @@ from ghostline.features import (
     compute_minisectors,
     compute_sectors,
     compute_style,
-    generate_findings,
 )
 from ghostline.load import get_fastest_laps, load_quali_session
 from ghostline.resample import resample_lap
@@ -99,9 +98,6 @@ def main():
             print(f"style: {len(style['drivers'])} drivers, "
                   f"{len(style['feature_names'])} corner-style features")
 
-    findings = generate_findings(drivers, pole_code, corners)
-    print(f"findings: {len(findings)} rule-based notes")
-
     meta = {
         "year": args.year,
         "gp": args.gp,
@@ -113,7 +109,6 @@ def main():
         "sectors": compute_sectors(laps[pole_code], pole_grid),
         "minisectors": minisectors,
         "style": style,
-        "findings": findings,
         "caveats": [
             "Longitudinal g is approximate: derived by differentiating speed.",
             "Position data is ~4-5 Hz interpolated; curvature and lateral g "
