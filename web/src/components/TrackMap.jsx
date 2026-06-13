@@ -393,7 +393,7 @@ export default function TrackMap({ session }) {
           ))}
         </div>
       </div>
-      <div className="panel" style={{ minWidth: sectorInfo ? 340 : 230, flex: 1 }}>
+      <div className="panel" style={{ minWidth: sectorInfo ? 340 : 230, flex: 1, marginTop: 0 }}>
         <h2 className="panel-label">Gap to pole / live</h2>
         {sectorInfo && (
           <div className="tower-head">
