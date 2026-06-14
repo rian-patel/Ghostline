@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+
+// 3D board pulls in three.js — code-split so it only loads when toggled on.
+const Replay3D = lazy(() => import('./Replay3D.jsx'))
 
 const WIDTH = 800
 const HEIGHT = 500
@@ -36,7 +39,7 @@ export function fitTransform(xs, ys, w, h, pad) {
 // Linear interpolation of a driver's x/y/delta at elapsed lap time t,
 // via binary search on the time channel. Clamps before the first and
 // after the last sample (finished cars sit at the line).
-function sampleAtTime(ch, t) {
+export function sampleAtTime(ch, t) {
   const time = ch.time
   const last = time.length - 1
   let lo, hi, f
@@ -64,6 +67,46 @@ function sampleAtTime(ch, t) {
   }
 }
 
+// Continuous index into the shared 5 m grid from elapsed lap time (binary
+// search on the driver's own time channel). Index i == distance i*5, identical
+// across drivers, so an index maps to the same track location on any path.
+export function indexAtTime(time, t) {
+  const last = time.length - 1
+  if (t <= time[0]) return 0
+  if (t >= time[last]) return last
+  let lo = 0
+  let hi = last
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (time[mid] <= t) lo = mid
+    else hi = mid
+  }
+  const span = time[hi] - time[lo]
+  return lo + (span > 0 ? (t - time[lo]) / span : 0)
+}
+
+// Interpolated point on an x/y path at a fractional grid index.
+function pathPointAt(xs, ys, fi) {
+  const last = xs.length - 1
+  const i = Math.min(Math.max(0, Math.floor(fi)), last)
+  const j = Math.min(i + 1, last)
+  const f = fi - i
+  return { x: xs[i] + (xs[j] - xs[i]) * f, y: ys[i] + (ys[j] - ys[i]) * f }
+}
+
+// Where to DRAW a car: its own GPS line where the telemetry is sound, but
+// snapped onto the reference (pole) path at the same distance when its raw
+// point is wildly off (>25 m) — kills lap-start / telemetry glitches that would
+// otherwise place a car far from where it actually is on track.
+export function carDisplayPos(car, poleX, poleY, t) {
+  const fi = indexAtTime(car.time, t)
+  const own = pathPointAt(car.x, car.y, fi)
+  const ref = pathPointAt(poleX, poleY, fi)
+  const dx = own.x - ref.x
+  const dy = own.y - ref.y
+  return dx * dx + dy * dy > 625 ? ref : own
+}
+
 export default function TrackMap({ session }) {
   const canvasRef = useRef(null)
   const timeRef = useRef(0)
@@ -77,6 +120,7 @@ export default function TrackMap({ session }) {
   // Up to two driver codes, in click order. Empty = show the whole field.
   const [selected, setSelected] = useState([])
   const [displayTime, setDisplayTime] = useState(0)
+  const [mode, setMode] = useState('2d') // '2d' canvas | '3d' WebGL
 
   playingRef.current = playing
   speedRef.current = speed
@@ -128,10 +172,34 @@ export default function TrackMap({ session }) {
     return { per, best, pole: per[drivers[0].code].splits }
   }, [drivers, sectorsDist])
 
-  // Animation: per-frame drawing is imperative on the canvas; React state
-  // (playing/speed/selected) is read through refs so the loop is created once.
+  // Playback clock — single source of truth for time, independent of which
+  // board (2D canvas / 3D WebGL) is showing. The boards just read timeRef.
+  useEffect(() => {
+    let raf
+    let last = performance.now()
+    const tick = (now) => {
+      if (playingRef.current) {
+        // Clamp the frame delta: rAF is suspended in hidden tabs, and an
+        // unclamped delta would fast-forward the replay by wall-clock time.
+        const next = Math.min(
+          timeRef.current + (Math.min(now - last, 100) / 1000) * speedRef.current,
+          maxTime,
+        )
+        timeRef.current = next
+        setDisplayTime(next)
+        if (next >= maxTime) setPlaying(false)
+      }
+      last = now
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [maxTime])
+
+  // 2D canvas board: imperative per-frame drawing, reading the shared clock.
   useEffect(() => {
     const canvas = canvasRef.current
+    if (mode !== '2d' || !canvas) return
     const dpr = window.devicePixelRatio || 1
     canvas.width = WIDTH * dpr
     canvas.height = HEIGHT * dpr
@@ -197,7 +265,7 @@ export default function TrackMap({ session }) {
         : []
 
     const drawCar = (d) => {
-      const p = sampleAtTime(d.channels, timeRef.current)
+      const p = carDisplayPos(d.channels, pole.x, pole.y, timeRef.current)
       const sel = selectedRef.current.includes(d.code)
       if (sel) {
         ctx.shadowColor = 'rgba(255, 59, 48, 0.75)'
@@ -224,21 +292,7 @@ export default function TrackMap({ session }) {
     }
 
     let raf
-    let last = performance.now()
-    const tick = (now) => {
-      if (playingRef.current) {
-        // Clamp the frame delta: rAF is suspended in hidden tabs, and an
-        // unclamped delta would fast-forward the replay by wall-clock time.
-        const next = Math.min(
-          timeRef.current + (Math.min(now - last, 100) / 1000) * speedRef.current,
-          maxTime,
-        )
-        timeRef.current = next
-        setDisplayTime(next)
-        if (next >= maxTime) setPlaying(false)
-      }
-      last = now
-
+    const tick = () => {
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
       ctx.globalAlpha = 1
       ctx.lineJoin = 'round'
@@ -297,7 +351,7 @@ export default function TrackMap({ session }) {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [drivers, maxTime, sectorsDist])
+  }, [drivers, maxTime, sectorsDist, mode])
 
   // Toggle a code in the selection, capping at two: a third pick drops the
   // oldest of the current pair.
@@ -317,10 +371,11 @@ export default function TrackMap({ session }) {
     // so map mouse coordinates into drawing space.
     const mx = (e.clientX - rect.left) * (WIDTH / rect.width)
     const my = (e.clientY - rect.top) * (HEIGHT / rect.height)
+    const pole = drivers[0].channels
     let best = null
     let bestDist = 12
     for (const d of drivers) {
-      const p = sampleAtTime(d.channels, timeRef.current)
+      const p = carDisplayPos(d.channels, pole.x, pole.y, timeRef.current)
       const dist = Math.hypot(t.toX(p.x) - mx, t.toY(p.y) - my)
       if (dist < bestDist) {
         bestDist = dist
@@ -373,18 +428,52 @@ export default function TrackMap({ session }) {
             / {selected.length ? selected.join(' vs ') : 'all laps start together · click two to compare'}
           </span>
         </h2>
-        <canvas
-          ref={canvasRef}
-          onClick={onCanvasClick}
-          className="board"
-          style={{
-            width: '100%',
-            maxWidth: WIDTH,
-            height: 'auto',
-            aspectRatio: `${WIDTH} / ${HEIGHT}`,
-            cursor: 'pointer',
-          }}
-        />
+        {mode === '2d' ? (
+          <canvas
+            ref={canvasRef}
+            onClick={onCanvasClick}
+            className="board"
+            style={{
+              width: '100%',
+              maxWidth: WIDTH,
+              height: 'auto',
+              aspectRatio: `${WIDTH} / ${HEIGHT}`,
+              cursor: 'pointer',
+            }}
+          />
+        ) : (
+          <Suspense
+            fallback={
+              <div
+                className="board"
+                style={{
+                  width: '100%',
+                  maxWidth: WIDTH,
+                  aspectRatio: `${WIDTH} / ${HEIGHT}`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--muted)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 13,
+                }}
+              >
+                Loading 3D…
+              </div>
+            }
+          >
+            <div
+              className="board"
+              style={{
+                width: '100%',
+                maxWidth: WIDTH,
+                aspectRatio: `${WIDTH} / ${HEIGHT}`,
+                overflow: 'hidden',
+              }}
+            >
+              <Replay3D drivers={drivers} timeRef={timeRef} selected={selected} onToggle={toggleSelect} />
+            </div>
+          </Suspense>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
           <button onClick={onPlayPause} className="btn" style={{ minWidth: 72 }}>
             {playing ? 'Pause' : 'Play'}
@@ -403,7 +492,7 @@ export default function TrackMap({ session }) {
             {formatLapTime(displayTime)} / {formatLapTime(maxTime)}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
           {SPEEDS.map((s) => (
             <button
               key={s}
@@ -413,6 +502,10 @@ export default function TrackMap({ session }) {
               {s}x
             </button>
           ))}
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+            <button className={`btn${mode === '2d' ? ' btn--active' : ''}`} onClick={() => setMode('2d')}>2D</button>
+            <button className={`btn${mode === '3d' ? ' btn--active' : ''}`} onClick={() => setMode('3d')}>3D</button>
+          </div>
         </div>
       </div>
       <div className="panel" style={{ minWidth: sectorInfo ? 340 : 230, flex: 1, marginTop: 0 }}>
