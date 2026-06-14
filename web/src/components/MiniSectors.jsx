@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
+import CountUpTime from './CountUpTime.jsx'
 
 const WIDTH = 800
 const HEIGHT = 500
@@ -120,7 +121,7 @@ export default function MiniSectors({ session }) {
             textShadow: '0 0 18px rgba(74, 222, 128, 0.35)',
           }}
         >
-          {formatLapTime(ms.composite_ideal)}
+          <CountUpTime seconds={ms.composite_ideal} />
         </div>
         <div className="mono muted" style={{ fontSize: 13, marginTop: 6 }}>
           {gap.toFixed(3)}s vs pole ({session.meta.pole_driver}{' '}

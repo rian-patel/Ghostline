@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { loadSession, loadIndex } from './lib/loadSession.js'
-import TrackMap, { formatLapTime } from './components/TrackMap.jsx'
+import TrackMap from './components/TrackMap.jsx'
 import Pairwise from './components/Pairwise.jsx'
 import VehicleDynamics from './components/VehicleDynamics.jsx'
 import MiniSectors from './components/MiniSectors.jsx'
@@ -9,6 +9,7 @@ import DrivingStyle from './components/DrivingStyle.jsx'
 import useSmoothScroll from './lib/useSmoothScroll.js'
 import Dropdown from './components/Dropdown.jsx'
 import HeroTrack from './components/HeroTrack.jsx'
+import CountUpTime from './components/CountUpTime.jsx'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
@@ -26,8 +27,31 @@ export default function App() {
   const [view, setView] = useState('replay')
   const heroRef = useRef(null)
   const introPlayed = useRef(false)
+  const tabsRef = useRef(null)
+  const [ind, setInd] = useState({ left: 0, top: 0, width: 0, height: 0, ready: false })
 
   useSmoothScroll()
+
+  // Position the sliding tab indicator under the active tab (and on resize).
+  useLayoutEffect(() => {
+    const measure = () => {
+      const nav = tabsRef.current
+      if (!nav) return
+      const btn = nav.querySelector('.tab--active')
+      if (btn) {
+        setInd({
+          left: btn.offsetLeft,
+          top: btn.offsetTop,
+          width: btn.offsetWidth,
+          height: btn.offsetHeight,
+          ready: true,
+        })
+      }
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [view, session])
 
   // Load the session index once and pick a default (2026 Australian if present).
   useEffect(() => {
@@ -121,7 +145,9 @@ export default function App() {
                 Round {session.meta.round} · {sessionName}
               </div>
               <div className="hero-pole">
-                <div className="hero-time" data-anim="time">{formatLapTime(session.meta.pole_time)}</div>
+                <div className="hero-time" data-anim="time">
+                  <CountUpTime seconds={session.meta.pole_time} />
+                </div>
                 <div className="hero-pole-meta" data-anim="driver">
                   <span className="hero-pole-tag">Pole Position</span>
                   <span className="hero-driver">
@@ -135,16 +161,26 @@ export default function App() {
         </div>
       </div>
       <div className="app">
-        <nav className="tabs rise rise-1">
-        {VIEWS.map((v) => (
-          <button
-            key={v.id}
-            onClick={() => setView(v.id)}
-            className={`tab${view === v.id ? ' tab--active' : ''}`}
-          >
-            {v.label}
-          </button>
-        ))}
+        <nav className="tabs rise rise-1" ref={tabsRef}>
+          <span
+            className="tab-indicator"
+            style={{
+              left: ind.left,
+              top: ind.top,
+              width: ind.width,
+              height: ind.height,
+              opacity: ind.ready ? 1 : 0,
+            }}
+          />
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setView(v.id)}
+              className={`tab${view === v.id ? ' tab--active' : ''}`}
+            >
+              {v.label}
+            </button>
+          ))}
         </nav>
         <main className="rise rise-2">
           <div key={`${session.meta.year}_${session.meta.gp}_${view}`} className="view-fade">

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatLapTime } from './TrackMap.jsx'
-import { CHART, axisTick, tooltipStyle } from '../lib/chartTheme.js'
+import { CHART, ANIM, axisTick, tooltipStyle } from '../lib/chartTheme.js'
 
 // Each habit is framed so a fuller bar always means "more of this".
 // dir +1: a higher raw number = more of the named trait; dir -1: lower = more.
@@ -196,7 +196,7 @@ export default function DrivingStyle({ session }) {
               <Tooltip content={<MapTip />} cursor={{ stroke: '#3a4250' }} />
               <Scatter
                 data={mapData}
-                isAnimationActive={false}
+                {...ANIM}
                 onClick={(p) => p?.code && setCode(p.code)}
                 shape={(props) => {
                   const { cx, cy, payload } = props

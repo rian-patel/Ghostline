@@ -3,11 +3,18 @@
 // in index.css — Recharts needs JS values, so these are kept in sync by hand.
 
 export const CHART = {
-  grid: '#1c212a',
+  grid: '#161b21',
   axis: '#232830',
   zero: '#5d6671',
-  ref: '#262c35',
+  ref: '#242a33',
   refLabel: '#5d6671',
+}
+
+// Shared draw-in animation for chart series.
+export const ANIM = {
+  isAnimationActive: true,
+  animationDuration: 800,
+  animationEasing: 'ease-out',
 }
 
 export const axisTick = {
@@ -18,12 +25,13 @@ export const axisTick = {
 
 export const tooltipStyle = {
   contentStyle: {
-    background: '#13171e',
+    background: 'rgba(19, 23, 30, 0.92)',
+    backdropFilter: 'blur(8px)',
     border: '1px solid #2c333d',
     borderRadius: 8,
     fontSize: 12,
     fontFamily: 'IBM Plex Mono, monospace',
-    boxShadow: '0 8px 28px -10px rgba(0, 0, 0, 0.7)',
+    boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.8)',
   },
   labelStyle: { color: '#8b939e' },
   cursor: { stroke: '#3a4250', strokeWidth: 1 },

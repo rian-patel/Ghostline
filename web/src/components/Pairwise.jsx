@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
-import { CHART, SERIES, axisTick, tooltipStyle } from '../lib/chartTheme.js'
+import { CHART, SERIES, ANIM, axisTick, tooltipStyle } from '../lib/chartTheme.js'
 
 const COLOR_A = SERIES.a
 const COLOR_B = SERIES.b
@@ -46,8 +46,8 @@ function ChannelChart({ data, keyA, keyB, codeA, codeB, label, type = 'linear', 
           />
           <YAxis tick={axisTick} width={44} domain={domain} stroke={CHART.axis} />
           <Tooltip {...tooltipStyle} labelFormatter={distLabel} />
-          <Line type={type} dataKey={keyA} name={codeA} stroke={COLOR_A} dot={false} isAnimationActive={false} strokeWidth={1.5} />
-          <Line type={type} dataKey={keyB} name={codeB} stroke={COLOR_B} dot={false} isAnimationActive={false} strokeWidth={1.5} />
+          <Line type={type} dataKey={keyA} name={codeA} stroke={COLOR_A} dot={false} {...ANIM} strokeWidth={1.5} />
+          <Line type={type} dataKey={keyB} name={codeB} stroke={COLOR_B} dot={false} {...ANIM} strokeWidth={1.5} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -237,7 +237,7 @@ export default function Pairwise({ session }) {
                 label={{ value: `T${c.number}${c.letter}`, fill: CHART.refLabel, fontSize: 10, position: 'top' }}
               />
             ))}
-            <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke={SERIES.delta} dot={false} isAnimationActive={false} strokeWidth={1.5} />
+            <Line type="linear" dataKey="delta" name={`Δt ${codeB}−${codeA}`} stroke={SERIES.delta} dot={false} {...ANIM} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>
