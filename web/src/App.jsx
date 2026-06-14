@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
 import { loadSession, loadIndex } from './lib/loadSession.js'
 import TrackMap, { formatLapTime } from './components/TrackMap.jsx'
 import Pairwise from './components/Pairwise.jsx'
@@ -6,6 +7,7 @@ import VehicleDynamics from './components/VehicleDynamics.jsx'
 import MiniSectors from './components/MiniSectors.jsx'
 import DrivingStyle from './components/DrivingStyle.jsx'
 import useSmoothScroll from './lib/useSmoothScroll.js'
+import Dropdown from './components/Dropdown.jsx'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
@@ -21,6 +23,8 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [error, setError] = useState(null)
   const [view, setView] = useState('replay')
+  const heroRef = useRef(null)
+  const introPlayed = useRef(false)
 
   useSmoothScroll()
 
@@ -42,6 +46,24 @@ export default function App() {
     loadSession(selected).then(setSession).catch((e) => setError(e.message))
   }, [selected])
 
+  // One-time cinematic entry: the hero image settles while the wordmark,
+  // pickers, and pole time resolve in. Runs the first time the hero mounts
+  // (after the initial session loads); skipped under reduced motion.
+  useLayoutEffect(() => {
+    if (!session || introPlayed.current || !heroRef.current) return
+    introPlayed.current = true
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'expo.out' } })
+      tl.from('.hero-bg-img', { scale: 1.08, duration: 1.4, ease: 'power2.out' }, 0)
+        .from('[data-anim="brand"]', { y: 22, autoAlpha: 0, duration: 0.7 }, 0.1)
+        .from('[data-anim="pickers"]', { y: 12, autoAlpha: 0, duration: 0.6 }, 0.28)
+        .from('[data-anim="eyebrow"]', { y: 14, autoAlpha: 0, duration: 0.6 }, 0.34)
+        .from('[data-anim="time"]', { y: 30, autoAlpha: 0, filter: 'blur(14px)', duration: 0.95 }, 0.4)
+        .from('[data-anim="driver"]', { y: 16, autoAlpha: 0, duration: 0.7 }, 0.56)
+    }, heroRef)
+  }, [session])
+
   if (error) return <p className="status-note status-note--error">Could not load session: {error}</p>
   if (!session) return <p className="status-note">Loading session…</p>
 
@@ -58,41 +80,56 @@ export default function App() {
     if (first) setSelected(first.file)
   }
 
+  const sessionName =
+    { Q: 'Qualifying', SQ: 'Sprint Qualifying' }[session.meta.session] || session.meta.session
+  const poleColor = session.drivers[session.meta.pole_driver]?.team?.color || 'var(--accent)'
+  const yearOptions = years.map((y) => ({ value: String(y), label: String(y) }))
+  const raceOptions = racesForYear.map((s) => ({ value: s.file, label: s.gp }))
+
   return (
     <>
-      <div className="hero rise">
+      <div className="hero" ref={heroRef}>
+        <div className="hero-bg" aria-hidden="true">
+          <div className="hero-bg-img" />
+        </div>
         <div className="hero-inner">
           <header className="masthead">
-            <div className="brand">
+            <div className="brand" data-anim="brand">
               <img className="brand-mark" src="/brand/mark.png" width="52" height="52" alt="Ghostline logo" />
               <h1 className="wordmark" data-text="GHOSTLINE">
                 GHOST<span className="line">LINE</span>
               </h1>
             </div>
-            <div className="session-meta">
-              <select
-                className="select"
-                value={current?.year ?? ''}
-                onChange={(e) => pickYear(e.target.value)}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>{' '}
-              <select
-                className="select"
+            <div className="pickers" data-anim="pickers">
+              <Dropdown
+                ariaLabel="Season"
+                value={String(current?.year ?? '')}
+                options={yearOptions}
+                onChange={pickYear}
+              />
+              <Dropdown
+                ariaLabel="Grand Prix"
                 value={selected || ''}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {racesForYear.map((s) => (
-                  <option key={s.file} value={s.file}>{s.gp}</option>
-                ))}
-              </select>{' '}
-              · {session.meta.session} · POLE{' '}
-              <b>{session.meta.pole_driver}</b>{' '}
-              <span className="best">{formatLapTime(session.meta.pole_time)}</span>
+                options={raceOptions}
+                onChange={setSelected}
+              />
             </div>
           </header>
+          <div className="hero-stat">
+            <div className="hero-eyebrow" data-anim="eyebrow">
+              Round {session.meta.round} · {current?.gp ?? session.meta.gp} · {sessionName}
+            </div>
+            <div className="hero-pole">
+              <div className="hero-time" data-anim="time">{formatLapTime(session.meta.pole_time)}</div>
+              <div className="hero-pole-meta" data-anim="driver">
+                <span className="hero-pole-tag">Pole Position</span>
+                <span className="hero-driver">
+                  <span className="hero-driver-dot" style={{ background: poleColor }} />
+                  {session.meta.pole_driver}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div className="app">
