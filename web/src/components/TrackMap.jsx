@@ -465,6 +465,7 @@ export default function TrackMap({ session }) {
           >
             <div
               className="board"
+              data-lenis-prevent
               style={{
                 width: '100%',
                 maxWidth: WIDTH,
