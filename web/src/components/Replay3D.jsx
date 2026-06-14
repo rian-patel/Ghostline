@@ -87,10 +87,11 @@ export default function Replay3D({ drivers, timeRef, selected, onToggle }) {
       style={{ width: '100%', height: '100%' }}
     >
       <color attach="background" args={['#0a0c0f']} />
-      {/* Fog pulls the infinite grid down into the background, giving the scene
-          cinematic depth falloff without the perf/readability cost of DOF
-          (which would blur the very cars you're tracking). */}
-      <fog attach="fog" args={['#0a0c0f', 120, 330]} />
+      {/* Fog fades the infinite grid horizon into the background for cinematic
+          depth — without the perf/readability cost of DOF (which would blur the
+          cars). near=200 keeps the whole circuit (~120-191u from the camera)
+          clear; only the grid beyond it darkens. */}
+      <fog attach="fog" args={['#0a0c0f', 200, 480]} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[40, 80, 20]} intensity={0.5} />
       <Grid
@@ -114,7 +115,7 @@ export default function Replay3D({ drivers, timeRef, selected, onToggle }) {
       />
       <EffectComposer>
         <Bloom intensity={0.95} luminanceThreshold={0.2} luminanceSmoothing={0.28} radius={0.7} mipmapBlur />
-        <Vignette offset={0.28} darkness={0.72} eskil={false} />
+        <Vignette offset={0.32} darkness={0.6} eskil={false} />
       </EffectComposer>
     </Canvas>
   )
