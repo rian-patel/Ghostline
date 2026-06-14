@@ -16,6 +16,13 @@ def resample_lap(lap, step_m=5.0):
     car_time = car["Time"].dt.total_seconds().to_numpy()
     car_dist = car["Distance"].to_numpy()
 
+    # Some laps in the public feed carry corrupt telemetry whose distance never
+    # accumulates (e.g. RUS at Miami 2025). Reject them so the caller skips the
+    # driver instead of emitting an empty grid that breaks downstream math.
+    if car_dist.size < 2 or not np.isfinite(car_dist[-1]) or car_dist[-1] <= step_m:
+        span = float(car_dist[-1]) if car_dist.size else 0.0
+        raise ValueError(f"degenerate lap: distance span {span:.1f} m")
+
     grid = np.arange(0.0, car_dist[-1], step_m)
 
     # Position samples arrive on their own clock; map each one to a lap

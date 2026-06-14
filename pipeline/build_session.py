@@ -74,6 +74,9 @@ def main():
         }
         for _, row in circuit_info.corners.iterrows()
     ] if circuit_info is not None else []
+    # FastF1 occasionally lists corners out of distance order (e.g. Baku 2025);
+    # sort by lap distance so corner windows stay monotonic downstream.
+    corners.sort(key=lambda c: c["distance"])
 
     track_length = round(float(pole_grid["distance"][-1]), 1)
     minisectors, n_apexes = compute_minisectors(

@@ -10,7 +10,7 @@ def _round_channels(channels):
         "x": [round(float(v), 1) for v in channels["x"]],
         "y": [round(float(v), 1) for v in channels["y"]],
         "speed": [int(round(float(v))) for v in channels["speed"]],
-        "throttle": [int(round(float(v))) for v in channels["throttle"]],
+        "throttle": [int(min(100, max(0, round(float(v))))) for v in channels["throttle"]],
         "brake": [int(v > 0.5) for v in channels["brake"]],
         "gear": [int(round(float(v))) for v in channels["gear"]],
         "time": [round(float(v), 3) for v in channels["time"]],
