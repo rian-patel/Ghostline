@@ -140,6 +140,19 @@ body {
   background: linear-gradient(90deg, var(--accent), transparent);
   box-shadow: 0 0 12px -2px var(--accent-glow);
 }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  flex: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 .wordmark {
   position: relative;
   margin: 0;

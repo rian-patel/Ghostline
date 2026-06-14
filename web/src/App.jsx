@@ -60,9 +60,12 @@ export default function App() {
       <div className="hero rise">
         <div className="hero-inner">
           <header className="masthead">
-            <h1 className="wordmark" data-text="GHOSTLINE">
-              GHOST<span className="line">LINE</span>
-            </h1>
+            <div className="brand">
+              <img className="brand-mark" src="/brand/mark.png" width="52" height="52" alt="Ghostline logo" />
+              <h1 className="wordmark" data-text="GHOSTLINE">
+                GHOST<span className="line">LINE</span>
+              </h1>
+            </div>
             <div className="session-meta">
               <select
                 className="select"
