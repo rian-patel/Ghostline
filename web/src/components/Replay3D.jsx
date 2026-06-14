@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Line, Grid, OrbitControls } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { carDisplayPos } from './TrackMap.jsx'
 
 // Normalize the pole lap's x/y into centered world units on the XZ ground
@@ -86,8 +86,12 @@ export default function Replay3D({ drivers, timeRef, selected, onToggle }) {
       dpr={[1, 1.75]}
       style={{ width: '100%', height: '100%' }}
     >
-      <color attach="background" args={['#0c0f13']} />
-      <ambientLight intensity={0.6} />
+      <color attach="background" args={['#0a0c0f']} />
+      {/* Fog pulls the infinite grid down into the background, giving the scene
+          cinematic depth falloff without the perf/readability cost of DOF
+          (which would blur the very cars you're tracking). */}
+      <fog attach="fog" args={['#0a0c0f', 120, 330]} />
+      <ambientLight intensity={0.55} />
       <directionalLight position={[40, 80, 20]} intensity={0.5} />
       <Grid
         args={[400, 400]}
@@ -109,7 +113,8 @@ export default function Replay3D({ drivers, timeRef, selected, onToggle }) {
         maxPolarAngle={Math.PI / 2.15}
       />
       <EffectComposer>
-        <Bloom intensity={0.85} luminanceThreshold={0.15} luminanceSmoothing={0.3} mipmapBlur />
+        <Bloom intensity={0.95} luminanceThreshold={0.2} luminanceSmoothing={0.28} radius={0.7} mipmapBlur />
+        <Vignette offset={0.28} darkness={0.72} eskil={false} />
       </EffectComposer>
     </Canvas>
   )

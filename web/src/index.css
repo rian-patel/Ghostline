@@ -12,7 +12,8 @@
   --text: #e8eaed;
   --text-dim: #aab2bd;
   --muted: #8b939e;
-  --faint: #5d6671;
+  /* lifted from #5d6671 so the faintest labels clear WCAG AA (~4.5:1) on panels */
+  --faint: #79818d;
 
   /* accent (red, kept) + semantic */
   --accent: #ff3b30;
@@ -585,6 +586,10 @@ canvas.board {
   transition: background 0.12s var(--ease), opacity 0.12s var(--ease), border-color 0.12s var(--ease);
 }
 .tower-row:hover { background: var(--panel-2); }
+.tower-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .tower-row--selected {
   background: var(--accent-dim);
   border-color: rgba(255, 59, 48, 0.35);
@@ -619,7 +624,27 @@ canvas.board {
   text-align: right;
   flex-shrink: 0;
 }
-.tower-sec--pending { color: #3f4651; }
+.tower-sec--pending { color: #525a65; }
+
+/* replay layout: board + live gap tower, side by side then stacked on phones.
+   These were inline styles; promoted to classes so the mobile media query can
+   force the tower full-width (inline styles can't be overridden by CSS). */
+.replay-grid {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.replay-board { flex: 1 1 460px; min-width: 0; }
+.replay-tower { flex: 1; min-width: 230px; }
+.replay-tower--wide { min-width: 340px; }
+/* override the stacked-panel adjacency margin for the flex siblings here */
+.replay-grid > .panel { margin-top: 0; }
+
+@media (max-width: 600px) {
+  .app { padding: var(--space-2) var(--space-4) 48px; }
+  .replay-tower, .replay-tower--wide { min-width: 100%; flex-basis: 100%; }
+}
 
 /* corner / data tables */
 .corner-table {

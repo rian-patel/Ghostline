@@ -420,8 +420,8 @@ export default function TrackMap({ session }) {
     )
 
   return (
-    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <div className="panel" style={{ flex: '1 1 460px', minWidth: 0 }}>
+    <div className="replay-grid">
+      <div className="panel replay-board">
         <h2 className="panel-label">
           Ghost replay{' '}
           <span className="mark">
@@ -433,6 +433,8 @@ export default function TrackMap({ session }) {
             ref={canvasRef}
             onClick={onCanvasClick}
             className="board"
+            role="img"
+            aria-label={`Ghost replay of the ${session.meta.gp} circuit with ${drivers.length} cars. The gap-to-pole list on the right is keyboard-accessible and lets you pick two drivers to compare.`}
             style={{
               width: '100%',
               maxWidth: WIDTH,
@@ -474,8 +476,8 @@ export default function TrackMap({ session }) {
             </div>
           </Suspense>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-          <button onClick={onPlayPause} className="btn" style={{ minWidth: 72 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+          <button onClick={onPlayPause} className="btn" style={{ minWidth: 72 }} aria-label={playing ? 'Pause replay' : 'Play replay'}>
             {playing ? 'Pause' : 'Play'}
           </button>
           <input
@@ -486,29 +488,33 @@ export default function TrackMap({ session }) {
             step={0.05}
             value={displayTime}
             onChange={onScrub}
+            aria-label="Scrub replay position"
+            aria-valuetext={`${formatLapTime(displayTime)} of ${formatLapTime(maxTime)}`}
             style={{ '--pct': maxTime ? displayTime / maxTime : 0 }}
           />
           <span className="mono muted" style={{ fontSize: 13, minWidth: 150, textAlign: 'right' }}>
             {formatLapTime(displayTime)} / {formatLapTime(maxTime)}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {SPEEDS.map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
               className={`btn${s === speed ? ' btn--active' : ''}`}
+              aria-pressed={s === speed}
+              aria-label={`${s} times speed`}
             >
               {s}x
             </button>
           ))}
-          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-            <button className={`btn${mode === '2d' ? ' btn--active' : ''}`} onClick={() => setMode('2d')}>2D</button>
-            <button className={`btn${mode === '3d' ? ' btn--active' : ''}`} onClick={() => setMode('3d')}>3D</button>
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }} role="group" aria-label="Replay renderer">
+            <button className={`btn${mode === '2d' ? ' btn--active' : ''}`} onClick={() => setMode('2d')} aria-pressed={mode === '2d'}>2D</button>
+            <button className={`btn${mode === '3d' ? ' btn--active' : ''}`} onClick={() => setMode('3d')} aria-pressed={mode === '3d'}>3D</button>
           </div>
         </div>
       </div>
-      <div className="panel" style={{ minWidth: sectorInfo ? 340 : 230, flex: 1, marginTop: 0 }}>
+      <div className={`panel replay-tower${sectorInfo ? ' replay-tower--wide' : ''}`}>
         <h2 className="panel-label">Gap to pole / live</h2>
         {sectorInfo && (
           <div className="tower-head">
@@ -533,7 +539,21 @@ export default function TrackMap({ session }) {
             .join(' ')
           const info = sectorInfo?.per[d.code]
           return (
-            <div key={d.code} onClick={() => toggleSelect(d.code)} className={cls}>
+            <div
+              key={d.code}
+              onClick={() => toggleSelect(d.code)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggleSelect(d.code)
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected.includes(d.code)}
+              aria-label={`P${d.pos} ${d.code}, gap ${d.gap > 0 ? '+' : ''}${d.gap.toFixed(3)} seconds. Select to compare.`}
+              className={cls}
+            >
               <span className="tower-pos">{d.pos}</span>
               <span
                 className="tower-dot"

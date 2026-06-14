@@ -1,15 +1,19 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { loadSession, loadIndex } from './lib/loadSession.js'
 import TrackMap from './components/TrackMap.jsx'
-import Pairwise from './components/Pairwise.jsx'
-import VehicleDynamics from './components/VehicleDynamics.jsx'
-import MiniSectors from './components/MiniSectors.jsx'
-import DrivingStyle from './components/DrivingStyle.jsx'
 import useSmoothScroll from './lib/useSmoothScroll.js'
 import Dropdown from './components/Dropdown.jsx'
 import HeroTrack from './components/HeroTrack.jsx'
 import CountUpTime from './components/CountUpTime.jsx'
+
+// Replay is the landing view and stays eager. The other four each pull heavier
+// deps (Recharts for three of them) and sit behind a tab click, so code-split
+// them out of the initial bundle and load on demand.
+const Pairwise = lazy(() => import('./components/Pairwise.jsx'))
+const VehicleDynamics = lazy(() => import('./components/VehicleDynamics.jsx'))
+const MiniSectors = lazy(() => import('./components/MiniSectors.jsx'))
+const DrivingStyle = lazy(() => import('./components/DrivingStyle.jsx'))
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
@@ -161,8 +165,9 @@ export default function App() {
         </div>
       </div>
       <div className="app">
-        <nav className="tabs rise rise-1" ref={tabsRef}>
+        <nav className="tabs rise rise-1" ref={tabsRef} role="tablist" aria-label="Telemetry views">
           <span
+            aria-hidden="true"
             className="tab-indicator"
             style={{
               left: ind.left,
@@ -175,6 +180,10 @@ export default function App() {
           {VIEWS.map((v) => (
             <button
               key={v.id}
+              id={`tab-${v.id}`}
+              role="tab"
+              aria-selected={view === v.id}
+              aria-controls={`panel-${v.id}`}
               onClick={() => setView(v.id)}
               className={`tab${view === v.id ? ' tab--active' : ''}`}
             >
@@ -183,12 +192,20 @@ export default function App() {
           ))}
         </nav>
         <main className="rise rise-2">
-          <div key={`${session.meta.year}_${session.meta.gp}_${view}`} className="view-fade">
-            {view === 'replay' && <TrackMap session={session} />}
-            {view === 'pairwise' && <Pairwise session={session} />}
-            {view === 'dynamics' && <VehicleDynamics session={session} />}
-            {view === 'sectors' && <MiniSectors session={session} />}
-            {view === 'style' && <DrivingStyle session={session} />}
+          <div
+            key={`${session.meta.year}_${session.meta.gp}_${view}`}
+            className="view-fade"
+            id={`panel-${view}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${view}`}
+          >
+            <Suspense fallback={<p className="status-note">Loading view…</p>}>
+              {view === 'replay' && <TrackMap session={session} />}
+              {view === 'pairwise' && <Pairwise session={session} />}
+              {view === 'dynamics' && <VehicleDynamics session={session} />}
+              {view === 'sectors' && <MiniSectors session={session} />}
+              {view === 'style' && <DrivingStyle session={session} />}
+            </Suspense>
           </div>
         </main>
       </div>
