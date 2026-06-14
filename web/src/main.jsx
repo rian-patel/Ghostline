@@ -6,5 +6,6 @@ import './index.css'
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
+    <div className="grain" aria-hidden="true" />
   </React.StrictMode>,
 )

@@ -27,6 +27,11 @@
   --font-display: 'Chakra Petch', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 
+  /* display type scale — big, confident numerals for the cinematic phases */
+  --text-hero: clamp(2.5rem, 6vw, 5.5rem);
+  --text-display: clamp(1.75rem, 4vw, 3rem);
+  --text-numeral: clamp(2rem, 5vw, 4rem);
+
   /* radii */
   --radius-sm: 5px;
   --radius: 9px;
@@ -47,7 +52,11 @@
 
   /* motion */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur: 0.18s;
+  --dur-slow: 0.6s;
+  --dur-slower: 1s;
 }
 
 * {
@@ -450,6 +459,23 @@ canvas.board {
 
 .gain { color: var(--gain); }
 .loss { color: var(--loss); }
+
+/* Lenis smooth-scroll plumbing (see useSmoothScroll.js) */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* global film grain — fixed, faint, sits above everything but eats no clicks */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rise, .view-fade { animation: none; }

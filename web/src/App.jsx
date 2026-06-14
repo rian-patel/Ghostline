@@ -5,6 +5,7 @@ import Pairwise from './components/Pairwise.jsx'
 import VehicleDynamics from './components/VehicleDynamics.jsx'
 import MiniSectors from './components/MiniSectors.jsx'
 import DrivingStyle from './components/DrivingStyle.jsx'
+import useSmoothScroll from './lib/useSmoothScroll.js'
 
 const VIEWS = [
   { id: 'replay', label: 'Replay' },
@@ -20,6 +21,8 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [error, setError] = useState(null)
   const [view, setView] = useState('replay')
+
+  useSmoothScroll()
 
   // Load the session index once and pick a default (2026 Australian if present).
   useEffect(() => {
