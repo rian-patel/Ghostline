@@ -1,6 +1,6 @@
 # Ghostline
 
-**Browser-based F1 qualifying telemetry analysis. A physics-aware Python pipeline turns one qualifying session into a compact data file, and a 60fps canvas frontend replays the whole field's fastest laps as synchronized ghost cars next to four linked analysis views.**
+**Physics-aware F1 qualifying analysis. Reconstructs each driver's fastest lap from raw FastF1 telemetry, derives curvature and g-forces, and precomputes one compact file the browser replays as synchronized ghost cars with linked charts.**
 
 Ghostline downloads official F1 timing and telemetry with [FastF1](https://github.com/theOehrly/Fast-F1), picks every driver's fastest qualifying lap, and precomputes everything offline into one small JSON per session: position, speed, throttle, brake, gear, time delta to pole, and derived vehicle dynamics (curvature, lateral and longitudinal g). The React frontend loads those static files and renders five interactive views with no server, no database, and no live API calls. Every number on screen comes from the precomputed file; the app never invents data, and it is explicit about where the underlying telemetry is and is not trustworthy.
 
