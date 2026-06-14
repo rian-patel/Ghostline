@@ -3,8 +3,6 @@ import { ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'rec
 import { formatLapTime } from './TrackMap.jsx'
 import { CHART, axisTick, tooltipStyle } from '../lib/chartTheme.js'
 
-const teamSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-
 // Each habit is framed so a fuller bar always means "more of this".
 // dir +1: a higher raw number = more of the named trait; dir -1: lower = more.
 const TRAITS = [
@@ -157,14 +155,6 @@ export default function DrivingStyle({ session }) {
           </select>
           {driver.team?.name && (
             <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <img
-                src={`/teams/${teamSlug(driver.team.name)}.svg`}
-                alt=""
-                style={{ width: 22, height: 22, flexShrink: 0 }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
               {driver.team.name}
             </span>
           )}

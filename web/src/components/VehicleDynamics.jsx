@@ -3,8 +3,6 @@ import { Scatter, ScatterChart, XAxis, YAxis } from 'recharts'
 import { fitTransform, formatLapTime } from './TrackMap.jsx'
 import { CHART, axisTick } from '../lib/chartTheme.js'
 
-const teamSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-
 const G_TICKS = [-6, -4, -2, 0, 2, 4, 6]
 
 // Friction-circle reference rings at 1..5 g, drawn as rings of dots so we
@@ -123,14 +121,6 @@ export default function VehicleDynamics({ session }) {
           </select>
           {driver.team?.name && (
             <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <img
-                src={`/teams/${teamSlug(driver.team.name)}.svg`}
-                alt=""
-                style={{ width: 22, height: 22, flexShrink: 0 }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
               {driver.team.name}
             </span>
           )}
