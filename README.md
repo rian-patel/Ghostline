@@ -26,7 +26,7 @@ The whole thing is built around the hard limits of the public data. Position sam
 
 ## Features
 
-Each view is a self-contained read of the same precomputed session, switchable from a tab bar with a two-step year and race picker. The current build ships five 2024 and 2026 qualifying sessions (Bahrain, Miami, Monaco, Italy, and the 2026 Australian round) with the full 20 to 22 car field.
+Each view is a self-contained read of the same precomputed session, switchable from a tab bar with a two-step year and race picker. The current build ships 31 qualifying sessions: the complete 2025 season and the opening seven rounds of 2026, each rendered with the full 20 to 22 car field.
 
 ### Ghost replay
 
@@ -37,6 +37,7 @@ All fastest laps animate at once as dots on a canvas track map, every car starti
 - Each driver's sector splits reveal in the tower as their car crosses each boundary, colored purple for field best, green for at or under pole, red for slower.
 - Cars are drawn in team colors, with a team's second car hollow so teammates are distinguishable; click any car or tower row to spotlight it and dim the rest.
 - The track is drawn with sector dividers, sector labels, and a checkered start/finish line oriented across the circuit.
+- An optional 3D WebGL view (Three.js) renders the same replay with depth, a glowing racing line, and bloom. It is lazy-loaded so it never slows first paint, and the 2D canvas stays the default.
 
 ### Pairwise deep dive
 
@@ -72,6 +73,14 @@ Five named, explainable corner habits per driver, each measured relative to the 
 - A per-driver habit profile: late braking, corner speed, early throttle, exit speed, and trail braking, each shown as a bar ranked across the field with the field average marked and the driver's rank called out.
 - A one-line summary naming the two habits where the selected driver is furthest from the field.
 
+## Interface and performance
+
+The interface treats the circuit as the subject. The pole time counts up into a large hero numeral on load, the pole lap traces itself onto a typographic hero map from that lap's own X and Y samples, and a ghost dot keeps lapping the closed circuit. A GSAP entry timeline sequences the reveal, Lenis drives smooth scrolling, and both stand down when the visitor prefers reduced motion.
+
+The replay runs as a 2D canvas by default and holds 60fps with the full grid because the per-frame path uses refs and `requestAnimationFrame` instead of React state. An optional 3D view renders the same data in WebGL through Three.js and React Three Fiber, adding depth, a glowing racing line, bloom, fog, and vignette. That 3D bundle is code-split and fetched only when a visitor switches into it.
+
+First paint is kept cheap. The hero reads the pole time from a 773-byte index manifest, which keeps the multi-megabyte session file off the critical render path, and the four chart views and the 3D scene are each lazy-loaded, leaving an initial JavaScript payload of about 99 KB gzipped. The build scores 100 for accessibility, best practices, and SEO in Lighthouse: the views form a labeled tab set, the gap tower is fully keyboard operable, and every control is reachable and described.
+
 ## Architecture
 
 A monorepo with two halves and a one-way data flow. The pipeline runs offline and produces static files; the frontend only ever reads them.
@@ -99,11 +108,11 @@ A monorepo with two halves and a one-way data flow. The pipeline runs offline an
                                v
                      BROWSER  (React + Vite, static on Vercel)
   +------------------------------------------------------------------+
-  |  App.jsx     year / race picker  ·  five analysis tabs           |
+  |  App.jsx   cinematic hero  ·  race picker  ·  five tabs          |
   +-----------+-----------+-----------+--------------+---------------+
   |  Replay   | Pairwise  | Dynamics  | Mini-sectors |    Style      |
   |  60fps    | delta +   | g-g       | dominance    |  habit map    |
-  |  canvas   | traces    | friction  | patchwork    |  + ranked     |
+  |  2D + 3D  | traces    | friction  | patchwork    |  + ranked     |
   |  gap tower| gain/loss | circle    | composite    |  habit bars   |
   +-----------+-----------+-----------+--------------+---------------+
 ```
@@ -168,6 +177,10 @@ Drivers are stored in official classification order, so `drivers[0]` is pole. Ev
 | vite | 8.0.16 | Dev server and production bundler |
 | @vitejs/plugin-react | 6.0.2 | React fast refresh and JSX transform |
 | HTML Canvas 2D | native | Ghost replay and every track map (no SVG, for 60fps with the full field) |
+| three / @react-three/fiber / @react-three/drei | 0.184 / 9.6 / 10.7 | Optional 3D WebGL replay, lazy-loaded off the initial bundle |
+| @react-three/postprocessing | 3.0 | Bloom, fog, and vignette in the 3D scene |
+| gsap | 3.15 | Hero entry timeline, count-up numerals, sliding tab indicator |
+| lenis | 1.3 | Smooth scrolling, with a reduced-motion fallback |
 
 ### Pipeline (Python 3.11)
 
@@ -205,18 +218,24 @@ Ghostline/
 ├── web/
 │   ├── public/
 │   │   ├── sessions/      # precomputed session JSON + index.json manifest
-│   │   └── teams/         # team logo SVGs
+│   │   └── brand/         # wordmark, hero art, QR, and panel textures
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── TrackMap.jsx         # ghost replay, controls, live gap tower
+│   │   │   ├── TrackMap.jsx         # ghost replay (2D canvas), controls, gap tower
+│   │   │   ├── Replay3D.jsx         # optional 3D WebGL replay (Three.js / R3F)
 │   │   │   ├── Pairwise.jsx         # two-driver deep dive
 │   │   │   ├── VehicleDynamics.jsx  # g-g diagram, grip map, braking table
 │   │   │   ├── MiniSectors.jsx      # dominance patchwork + composite ideal lap
-│   │   │   └── DrivingStyle.jsx     # style map + ranked habit bars
+│   │   │   ├── DrivingStyle.jsx     # style map + ranked habit bars
+│   │   │   ├── HeroTrack.jsx        # data-driven hero circuit + racing line
+│   │   │   ├── Dropdown.jsx         # custom accessible year / race picker
+│   │   │   └── CountUpTime.jsx      # animated pole and ideal-lap numerals
 │   │   ├── lib/
 │   │   │   ├── loadSession.js       # fetch a session and the index
-│   │   │   └── chartTheme.js        # shared Recharts theme
-│   │   ├── App.jsx                  # session picker + view tabs
+│   │   │   ├── chartTheme.js        # shared Recharts theme and animation config
+│   │   │   └── useSmoothScroll.js   # Lenis smooth-scroll hook (reduced-motion aware)
+│   │   ├── App.jsx                  # session picker, hero, and view tabs
+│   │   ├── index.css               # theme tokens, motion, and layout
 │   │   └── main.jsx
 │   └── package.json
 ├── vercel.json            # static build config (output web/dist)
@@ -244,10 +263,10 @@ pip install -r pipeline\requirements.txt
 Build one session. This loads the session, picks every driver's fastest lap, resamples and computes all channels, and writes the JSON into `web/public/sessions/` alongside a refreshed `index.json`:
 
 ```powershell
-pipeline\venv\Scripts\python.exe pipeline\build_session.py --year 2024 --gp "Bahrain" --session Q
+pipeline\venv\Scripts\python.exe pipeline\build_session.py --year 2025 --gp "Bahrain" --session Q
 ```
 
-Flags: `--year` and `--gp` are required, `--session` defaults to `Q`, and `--out` defaults to `web/public/sessions`. Three optional flags tune mini-sector detection: `--ms-min-curvature`, `--ms-min-spacing`, and `--ms-max-segment`. The first run for a season downloads several hundred MB into `pipeline/cache/` and is slow; later runs hit the cache and are fast. Build against completed sessions; the 2024 season is the stable reference.
+Flags: `--year` and `--gp` are required, `--session` defaults to `Q`, and `--out` defaults to `web/public/sessions`. Three optional flags tune mini-sector detection: `--ms-min-curvature`, `--ms-min-spacing`, and `--ms-max-segment`. The first run for a season downloads several hundred MB into `pipeline/cache/` and is slow; later runs hit the cache and are fast. Build against completed sessions; the 2025 season is the stable reference.
 
 ## Run and build the frontend
 
@@ -278,7 +297,7 @@ For continuous deploys, connect the GitHub repository in the Vercel dashboard (P
 To add a race, run the build command with a different `--year` and `--gp`, then commit the new file:
 
 ```powershell
-pipeline\venv\Scripts\python.exe pipeline\build_session.py --year 2024 --gp "Monaco" --session Q
+pipeline\venv\Scripts\python.exe pipeline\build_session.py --year 2025 --gp "Monaco" --session Q
 ```
 
 `build_session.py` regenerates `web/public/sessions/index.json` on every run, so the new race shows up in the picker automatically once the file is built and deployed.
