@@ -352,9 +352,17 @@ export default function TrackMap({ session }) {
     return 'var(--loss)'
   }
 
+  // Rank by live gap to pole (pos is the true running order), then float any
+  // selected drivers to the top so a chosen pair sits together for comparison.
+  // The selected-first sort is stable, so it preserves gap order within groups.
   const tower = drivers
     .map((d) => ({ ...d, gap: sampleAtTime(d.channels, displayTime).delta }))
     .sort((a, b) => a.gap - b.gap || a.lapTime - b.lapTime)
+    .map((d, i) => ({ ...d, pos: i + 1 }))
+    .sort(
+      (a, b) =>
+        (selected.includes(b.code) ? 1 : 0) - (selected.includes(a.code) ? 1 : 0),
+    )
 
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -362,7 +370,7 @@ export default function TrackMap({ session }) {
         <h2 className="panel-label">
           Ghost replay{' '}
           <span className="mark">
-            / {selected.length ? selected.join(' vs ') : 'all laps start together'}
+            / {selected.length ? selected.join(' vs ') : 'all laps start together · click two to compare'}
           </span>
         </h2>
         <canvas
@@ -422,7 +430,7 @@ export default function TrackMap({ session }) {
             ))}
           </div>
         )}
-        {tower.map((d, i) => {
+        {tower.map((d) => {
           const cls = [
             'tower-row',
             selected.includes(d.code) ? 'tower-row--selected' : '',
@@ -433,7 +441,7 @@ export default function TrackMap({ session }) {
           const info = sectorInfo?.per[d.code]
           return (
             <div key={d.code} onClick={() => toggleSelect(d.code)} className={cls}>
-              <span className="tower-pos">{i + 1}</span>
+              <span className="tower-pos">{d.pos}</span>
               <span
                 className="tower-dot"
                 style={
@@ -443,7 +451,7 @@ export default function TrackMap({ session }) {
                 }
               />
               <span className="tower-code">{d.code}</span>
-              <span className={`tower-gap${i === 0 ? ' tower-gap--best' : ''}`}>
+              <span className={`tower-gap${d.pos === 1 ? ' tower-gap--best' : ''}`}>
                 {d.gap > 0 ? `+${d.gap.toFixed(3)}` : d.gap.toFixed(3)}
               </span>
               {info &&
