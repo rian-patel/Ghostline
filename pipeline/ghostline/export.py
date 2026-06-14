@@ -56,12 +56,13 @@ def write_index(out_dir):
             "file": path.stem,
             "year": meta["year"],
             "gp": meta["gp"],
+            "round": meta.get("round"),
             "session": meta["session"],
             "pole_driver": meta["pole_driver"],
             "pole_time": meta["pole_time"],
         })
-    # Newest year first, then alphabetical by GP.
-    entries.sort(key=lambda e: (-e["year"], e["gp"]))
+    # Newest year first, then chronological by calendar round.
+    entries.sort(key=lambda e: (-e["year"], e["round"] if e["round"] is not None else 999))
     index_path = out_dir / "index.json"
     with open(index_path, "w") as f:
         json.dump(entries, f, separators=(",", ":"))

@@ -47,11 +47,11 @@ export default function App() {
   const years = [...new Set(index.map((s) => s.year))].sort((a, b) => b - a)
   const racesForYear = index
     .filter((s) => s.year === current?.year)
-    .sort((a, b) => a.gp.localeCompare(b.gp))
+    .sort((a, b) => a.round - b.round)
   const pickYear = (year) => {
     const first = index
       .filter((s) => s.year === Number(year))
-      .sort((a, b) => a.gp.localeCompare(b.gp))[0]
+      .sort((a, b) => a.round - b.round)[0]
     if (first) setSelected(first.file)
   }
 

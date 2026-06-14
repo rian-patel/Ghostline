@@ -101,6 +101,7 @@ def main():
     meta = {
         "year": args.year,
         "gp": args.gp,
+        "round": int(session.event["RoundNumber"]),
         "session": args.session,
         "track_length": track_length,
         "pole_driver": pole_code,
