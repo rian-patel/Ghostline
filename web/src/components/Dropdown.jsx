@@ -66,7 +66,7 @@ export default function Dropdown({ value, options, onChange, ariaLabel }) {
         </svg>
       </button>
       {open && (
-        <ul className="dd-panel" role="listbox" aria-label={ariaLabel}>
+        <ul className="dd-panel" role="listbox" aria-label={ariaLabel} data-lenis-prevent>
           {options.map((o, i) => (
             <li key={o.value}>
               <button

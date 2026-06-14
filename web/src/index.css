@@ -95,40 +95,94 @@ body {
   padding: var(--space-2) var(--space-5) 64px;
 }
 
-/* hero banner behind the masthead */
+/* hero banner behind the masthead — deep black with a faint red glow on the
+   right where the circuit graphic sits */
 .hero {
   position: relative;
   border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(70% 120% at 82% 55%, rgba(255, 59, 48, 0.08), transparent 62%),
+    linear-gradient(180deg, #0b0e12 0%, var(--bg) 100%);
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
 }
-/* clip layer: contains the scaling image but lets popovers (dropdowns) overflow */
-.hero-bg {
+/* clip layer so the circuit can bleed off-edge without the hero clipping the
+   dropdown popovers */
+.hero-fx {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  pointer-events: none;
 }
-/* the image scales on entry without moving the content */
-.hero-bg-img {
+/* the actual circuit, drawn from data (HeroTrack.jsx), sitting on the right */
+.hero-track {
   position: absolute;
-  inset: 0;
-  transform-origin: center;
-  background:
-    linear-gradient(90deg, var(--bg) 0%, rgba(10, 12, 15, 0.85) 26%, rgba(10, 12, 15, 0.30) 58%, transparent 100%),
-    linear-gradient(0deg, var(--bg) 0%, transparent 30%),
-    var(--bg) url('/brand/hero.jpg') center 42% / cover no-repeat;
+  top: 50%;
+  right: -1%;
+  transform: translateY(-50%);
+  height: 138%;
+  width: auto;
+  max-width: 70%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+.hero-track-base {
+  fill: none;
+  stroke: rgba(232, 234, 237, 0.07);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.hero-track-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px var(--accent-glow)) drop-shadow(0 0 13px var(--accent-glow));
+}
+.hero-track-dot {
+  fill: #fff;
+  filter: drop-shadow(0 0 5px var(--accent)) drop-shadow(0 0 10px var(--accent));
 }
 .hero-inner {
   position: relative;
   z-index: 1;
   max-width: 1180px;
   margin: 0 auto;
-  min-height: 360px;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-6);
+  justify-content: center;
+  align-items: flex-start;
   padding: var(--space-6) var(--space-5);
+}
+/* wordmark + pickers + pole stat as one vertically-centred left group */
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+/* race/season pickers, sat right under the wordmark so changing race is obvious */
+.hero-pickers {
+  position: relative;
+  z-index: 30; /* keep the open panel above the stat/time below it */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.hero-pickers-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: var(--space-1);
+}
+@media (max-width: 720px) {
+  .hero-inner { justify-content: flex-start; min-height: 0; gap: var(--space-5); }
+  .hero-track { opacity: 0.5; }
 }
 
 /* staggered page-load reveal */
@@ -148,28 +202,21 @@ body {
 .view-fade { animation: viewIn 0.32s var(--ease) both; }
 
 /* masthead */
-.masthead {
+.brand {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  gap: 16px;
 }
-.masthead::after {
+.brand::after {
   content: '';
   position: absolute;
   left: 2px;
-  bottom: -14px;
+  bottom: -12px;
   width: 84px;
   height: 3px;
   background: linear-gradient(90deg, var(--accent), transparent);
   box-shadow: 0 0 12px -2px var(--accent-glow);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
 }
 .brand-mark {
   width: 52px;
@@ -201,13 +248,6 @@ body {
   filter: blur(1.5px);
   pointer-events: none;
 }
-/* season / GP pickers */
-.pickers {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
 /* hero pole-time stat */
 .hero-stat {
   display: flex;
@@ -275,22 +315,25 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: rgba(13, 16, 20, 0.72);
-  backdrop-filter: blur(8px);
+  background: var(--panel-2);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 9px 14px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   cursor: pointer;
+  box-shadow: var(--shadow-1);
   transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
-.dd-button:hover { border-color: var(--border-strong); }
+.dd-button:hover {
+  border-color: rgba(255, 59, 48, 0.55);
+  box-shadow: var(--glow-accent);
+}
 .dd-button[aria-expanded='true'] {
-  border-color: rgba(255, 59, 48, 0.5);
+  border-color: rgba(255, 59, 48, 0.6);
   box-shadow: var(--glow-accent);
   color: var(--accent);
 }
@@ -391,7 +434,11 @@ body {
 
 /* panels */
 .panel {
-  background: linear-gradient(180deg, var(--panel) 0%, #0f1217 100%);
+  /* near-opaque gradient over a carbon-fibre texture: ~3% weave shows through
+     for a premium material feel without hurting legibility */
+  background:
+    linear-gradient(180deg, rgba(17, 20, 26, 0.965) 0%, rgba(15, 18, 23, 0.975) 100%),
+    url('/brand/carbon.webp') center / cover no-repeat;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-4);
