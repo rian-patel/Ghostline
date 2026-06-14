@@ -6,7 +6,7 @@ Ghostline downloads official F1 timing and telemetry with [FastF1](https://githu
 
 The whole thing is built around the hard limits of the public data. Position samples arrive at only about 4 to 5 Hz and are jittery, so the pipeline smooths before it differentiates, computes physics on raw single-lap data before resampling, caps curvature so position jitter cannot fake impossible g-loads, and anchors all timing math to the reliable speed and time channels. Honest treatment of those limits is a design goal, not a footnote.
 
-**Live demo:** add your Vercel URL here after `vercel --prod`.
+**Live demo:** [ghostline-eight.vercel.app](https://ghostline-eight.vercel.app/)
 
 ## Table of contents
 
