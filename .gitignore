@@ -10,3 +10,5 @@ pipeline/venv/
 CLAUDE.md
 docs/
 .claude/
+
+.vercel
