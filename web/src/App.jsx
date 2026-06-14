@@ -70,17 +70,22 @@ export default function App() {
       .catch((e) => setError(e.message))
   }, [])
 
-  // Load whichever session is selected.
+  // Load whichever session is selected. Clear first so the views show their
+  // own loading state instead of stale telemetry while the new file streams in
+  // (the hero keeps rendering from the index meta the whole time).
   useEffect(() => {
     if (!selected) return
+    setSession(null)
     loadSession(selected).then(setSession).catch((e) => setError(e.message))
   }, [selected])
 
-  // One-time cinematic entry: the hero image settles while the wordmark,
-  // pickers, and pole time resolve in. Runs the first time the hero mounts
-  // (after the initial session loads); skipped under reduced motion.
+  // One-time cinematic entry: the wordmark, pickers, and pole time resolve in.
+  // Runs the first time the hero mounts (which is as soon as the lightweight
+  // index loads, not the full session); skipped under reduced motion.
+  // The pole time (the LCP element) reveals via transform+blur only — never
+  // opacity 0 — so it counts as painted on first frame and doesn't delay LCP.
   useLayoutEffect(() => {
-    if (!session || introPlayed.current || !heroRef.current) return
+    if (introPlayed.current || !heroRef.current) return
     introPlayed.current = true
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     gsap.context(() => {
@@ -88,19 +93,20 @@ export default function App() {
       tl.from('[data-anim="brand"]', { y: 22, autoAlpha: 0, duration: 0.7 }, 0.1)
         .from('[data-anim="pickers"]', { y: 12, autoAlpha: 0, duration: 0.6 }, 0.28)
         .from('[data-anim="eyebrow"]', { y: 14, autoAlpha: 0, duration: 0.6 }, 0.34)
-        .from('[data-anim="time"]', { y: 30, autoAlpha: 0, filter: 'blur(14px)', duration: 0.95 }, 0.4)
+        .from('[data-anim="time"]', { y: 30, filter: 'blur(14px)', duration: 0.95 }, 0.4)
         .from('[data-anim="driver"]', { y: 16, autoAlpha: 0, duration: 0.7 }, 0.56)
     }, heroRef)
-  }, [session])
+  }, [selected])
 
   if (error) return <p className="status-note status-note--error">Could not load session: {error}</p>
-  if (!session) return <p className="status-note">Loading session…</p>
 
   // Two-step picker: year, then race within that year.
   const current = index.find((s) => s.file === selected)
+  if (!current) return <p className="status-note">Loading…</p>
+
   const years = [...new Set(index.map((s) => s.year))].sort((a, b) => b - a)
   const racesForYear = index
-    .filter((s) => s.year === current?.year)
+    .filter((s) => s.year === current.year)
     .sort((a, b) => a.round - b.round)
   const pickYear = (year) => {
     const first = index
@@ -109,9 +115,13 @@ export default function App() {
     if (first) setSelected(first.file)
   }
 
+  // The hero renders from `current` (the lightweight index entry, which already
+  // carries pole_time/pole_driver), so it paints without waiting on the ~1.5MB
+  // session JSON. The driver dot's team color is the one session-only field; it
+  // falls back to the accent until the session arrives.
   const sessionName =
-    { Q: 'Qualifying', SQ: 'Sprint Qualifying' }[session.meta.session] || session.meta.session
-  const poleColor = session.drivers[session.meta.pole_driver]?.team?.color || 'var(--accent)'
+    { Q: 'Qualifying', SQ: 'Sprint Qualifying' }[current.session] || current.session
+  const poleColor = session?.drivers?.[current.pole_driver]?.team?.color || 'var(--accent)'
   const yearOptions = years.map((y) => ({ value: String(y), label: String(y) }))
   const raceOptions = racesForYear.map((s) => ({ value: s.file, label: s.gp }))
 
@@ -119,7 +129,7 @@ export default function App() {
     <>
       <div className="hero" ref={heroRef}>
         <div className="hero-fx" aria-hidden="true">
-          <HeroTrack session={session} />
+          {session && <HeroTrack session={session} />}
         </div>
         <div className="hero-inner">
           <div className="hero-content">
@@ -146,17 +156,17 @@ export default function App() {
             </div>
             <div className="hero-stat">
               <div className="hero-eyebrow" data-anim="eyebrow">
-                Round {session.meta.round} · {sessionName}
+                Round {current.round} · {sessionName}
               </div>
               <div className="hero-pole">
                 <div className="hero-time" data-anim="time">
-                  <CountUpTime seconds={session.meta.pole_time} />
+                  <CountUpTime seconds={current.pole_time} />
                 </div>
                 <div className="hero-pole-meta" data-anim="driver">
                   <span className="hero-pole-tag">Pole Position</span>
                   <span className="hero-driver">
                     <span className="hero-driver-dot" style={{ background: poleColor }} />
-                    {session.meta.pole_driver}
+                    {current.pole_driver}
                   </span>
                 </div>
               </div>
@@ -193,19 +203,23 @@ export default function App() {
         </nav>
         <main className="rise rise-2">
           <div
-            key={`${session.meta.year}_${session.meta.gp}_${view}`}
+            key={`${current.file}_${view}`}
             className="view-fade"
             id={`panel-${view}`}
             role="tabpanel"
             aria-labelledby={`tab-${view}`}
           >
-            <Suspense fallback={<p className="status-note">Loading view…</p>}>
-              {view === 'replay' && <TrackMap session={session} />}
-              {view === 'pairwise' && <Pairwise session={session} />}
-              {view === 'dynamics' && <VehicleDynamics session={session} />}
-              {view === 'sectors' && <MiniSectors session={session} />}
-              {view === 'style' && <DrivingStyle session={session} />}
-            </Suspense>
+            {!session ? (
+              <p className="status-note">Loading telemetry…</p>
+            ) : (
+              <Suspense fallback={<p className="status-note">Loading view…</p>}>
+                {view === 'replay' && <TrackMap session={session} />}
+                {view === 'pairwise' && <Pairwise session={session} />}
+                {view === 'dynamics' && <VehicleDynamics session={session} />}
+                {view === 'sectors' && <MiniSectors session={session} />}
+                {view === 'style' && <DrivingStyle session={session} />}
+              </Suspense>
+            )}
           </div>
         </main>
       </div>
