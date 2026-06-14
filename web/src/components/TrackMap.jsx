@@ -74,7 +74,8 @@ export default function TrackMap({ session }) {
 
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
-  const [selected, setSelected] = useState(null)
+  // Up to two driver codes, in click order. Empty = show the whole field.
+  const [selected, setSelected] = useState([])
   const [displayTime, setDisplayTime] = useState(0)
 
   playingRef.current = playing
@@ -195,10 +196,9 @@ export default function TrackMap({ session }) {
           })
         : []
 
-    const drawCar = (d, dim) => {
+    const drawCar = (d) => {
       const p = sampleAtTime(d.channels, timeRef.current)
-      const sel = d.code === selectedRef.current
-      ctx.globalAlpha = dim ? 0.22 : 1
+      const sel = selectedRef.current.includes(d.code)
       if (sel) {
         ctx.shadowColor = 'rgba(255, 59, 48, 0.75)'
         ctx.shadowBlur = 14
@@ -286,14 +286,11 @@ export default function TrackMap({ session }) {
       ctx.textAlign = 'start'
       ctx.textBaseline = 'alphabetic'
 
+      // With a selection active, draw only those cars (the rest are hidden);
+      // otherwise the whole field.
       const sel = selectedRef.current
-      for (const d of drivers) {
-        if (d.code !== sel) drawCar(d, sel !== null)
-      }
-      if (sel) {
-        const selDriver = drivers.find((d) => d.code === sel)
-        if (selDriver) drawCar(selDriver, false)
-      }
+      const shown = sel.length ? drivers.filter((d) => sel.includes(d.code)) : drivers
+      for (const d of shown) drawCar(d)
       ctx.globalAlpha = 1
 
       raf = requestAnimationFrame(tick)
@@ -302,8 +299,16 @@ export default function TrackMap({ session }) {
     return () => cancelAnimationFrame(raf)
   }, [drivers, maxTime, sectorsDist])
 
+  // Toggle a code in the selection, capping at two: a third pick drops the
+  // oldest of the current pair.
   const toggleSelect = (code) =>
-    setSelected((prev) => (prev === code ? null : code))
+    setSelected((prev) =>
+      prev.includes(code)
+        ? prev.filter((c) => c !== code)
+        : prev.length < 2
+          ? [...prev, code]
+          : [prev[1], code],
+    )
 
   const onCanvasClick = (e) => {
     const t = transformRef.current
@@ -322,7 +327,7 @@ export default function TrackMap({ session }) {
         best = d.code
       }
     }
-    if (best === null) setSelected(null)
+    if (best === null) setSelected([])
     else toggleSelect(best)
   }
 
@@ -355,7 +360,10 @@ export default function TrackMap({ session }) {
     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
       <div className="panel" style={{ flex: '1 1 460px', minWidth: 0 }}>
         <h2 className="panel-label">
-          Ghost replay <span className="mark">/ all laps start together</span>
+          Ghost replay{' '}
+          <span className="mark">
+            / {selected.length ? selected.join(' vs ') : 'all laps start together'}
+          </span>
         </h2>
         <canvas
           ref={canvasRef}
@@ -417,8 +425,8 @@ export default function TrackMap({ session }) {
         {tower.map((d, i) => {
           const cls = [
             'tower-row',
-            d.code === selected ? 'tower-row--selected' : '',
-            selected && d.code !== selected ? 'tower-row--dim' : '',
+            selected.includes(d.code) ? 'tower-row--selected' : '',
+            selected.length && !selected.includes(d.code) ? 'tower-row--dim' : '',
           ]
             .filter(Boolean)
             .join(' ')
