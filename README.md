@@ -2,7 +2,7 @@
 
 **Physics-aware F1 qualifying analysis. Reconstructs each driver's fastest lap from raw FastF1 telemetry, derives curvature and g-forces, and precomputes one compact file the browser replays as synchronized ghost cars with linked charts.**
 
-Ghostline downloads official F1 timing and telemetry with [FastF1](https://github.com/theOehrly/Fast-F1), picks every driver's fastest qualifying lap, and precomputes everything offline into one small JSON per session: position, speed, throttle, brake, gear, time delta to pole, and derived vehicle dynamics (curvature, lateral and longitudinal g). The React frontend loads those static files and renders five interactive views across 31 qualifying sessions (the full 2025 season plus the opening rounds of 2026), with no server, no database, and no live API calls. Every number on screen comes from the precomputed file; the app never invents data, and it is explicit about where the underlying telemetry is and is not trustworthy.
+Ghostline downloads official F1 timing and telemetry with [FastF1](https://github.com/theOehrly/Fast-F1), picks every driver's fastest qualifying lap, and precomputes everything offline into one small JSON per session: position, speed, throttle, brake, gear, time delta to pole, and derived vehicle dynamics (curvature, lateral and longitudinal g). The React frontend loads those static files and renders five interactive views across 32 qualifying sessions (the full 2025 season plus the opening rounds of 2026), with no server, no database, and no live API calls. Every number on screen comes from the precomputed file; the app never invents data, and it is explicit about where the underlying telemetry is and is not trustworthy.
 
 The whole thing is built around the hard limits of the public data. Position samples arrive at only about 4 to 5 Hz and are jittery, so the pipeline smooths before it differentiates, computes physics on raw single-lap data before resampling, caps curvature so position jitter cannot fake impossible g-loads, and anchors all timing math to the reliable speed and time channels. Honest treatment of those limits is a design goal, not a footnote.
 
@@ -26,7 +26,7 @@ The whole thing is built around the hard limits of the public data. Position sam
 
 ## Features
 
-Each view is a self-contained read of the same precomputed session, switchable from a tab bar with a two-step year and race picker. The current build ships 31 qualifying sessions: the complete 2025 season and the opening seven rounds of 2026, each rendered with the full 20 to 22 car field.
+Each view is a self-contained read of the same precomputed session, switchable from a tab bar with a two-step year and race picker. The current build ships 32 qualifying sessions: the complete 2025 season and the opening eight rounds of 2026, each rendered with the full 20 to 22 car field.
 
 ### Ghost replay
 
